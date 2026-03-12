@@ -1,0 +1,27 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-dark: #0f1419;
+  --bg-card: #1a2332;
+  --bg-input: #252f3f;
+  --text-primary: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #39d353;
+  --accent-hover: #2ea043;
+  --error: #f85149;
+  --border: #30363d;
+  --radius: 12px;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+body {
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.6;
+}

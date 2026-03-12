@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-AivaProjectApplication<AIVA-Project>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.aiva.AIVA_Project.AivaProjectApplication",
+            "projectName": "AIVA-Project",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
