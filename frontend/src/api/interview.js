@@ -19,7 +19,7 @@ async function handleResponse(res) {
 }
 
 export async function getMockInterviewTypes() {
-  const res = await fetch('${BASE}/interview/types', {
+  const res = await fetch(`${BASE}/interview/types`, {
     headers: getAuthHeader(),
   });
   if (!res.ok) throw new Error('Failed to fetch interview types');
@@ -75,7 +75,7 @@ export async function getSessionQuestions(sessionId) {
 }
 
 export async function getInterviewHistory() {
-  const res = await fetch('${BASE}/interview/history', {
+  const res = await fetch(`${BASE}/interview/history`, {
     headers: getAuthHeader(),
   });
   return handleResponse(res);

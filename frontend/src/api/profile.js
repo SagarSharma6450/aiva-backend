@@ -19,14 +19,14 @@ async function handleResponse(res) {
 }
 
 export async function getProfile() {
-  const res = await fetch('${BASE}/profile', {
+  const res = await fetch(`${BASE}/profile`, {
     headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
   });
   return handleResponse(res);
 }
 
 export async function updateProfile(data) {
-  const res = await fetch('${BASE}/profile', {
+  const res = await fetch(`${BASE}/profile`, {
     method: 'PUT',
     headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
