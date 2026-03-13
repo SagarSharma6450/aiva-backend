@@ -7,15 +7,15 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/auth': {
-        target: 'http://localhost:8080',
+        target: 'https://aiva-backend-3.onrender.com',
         changeOrigin: true
       },
       '/profile': {
-        target: 'http://localhost:8080',
+        target: 'https://aiva-backend-3.onrender.com',
         changeOrigin: true
       },
       '/interview': {
-        target: 'http://localhost:8080',
+        target: 'https://aiva-backend-3.onrender.com',
         changeOrigin: true
       }
     }

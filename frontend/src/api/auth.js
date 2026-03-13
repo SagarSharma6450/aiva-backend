@@ -1,4 +1,4 @@
-const API_BASE = '/auth';
+const API_BASE = 'https://aiva-backend-3.onrender.com/auth';
 
 async function getErrorMessage(res) {
   const text = await res.text();
