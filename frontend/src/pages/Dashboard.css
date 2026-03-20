@@ -1526,12 +1526,29 @@
     display: flex;
   }
 
+  .app-shell {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
   .sidebar {
-    display: none;
+    display: none !important;
   }
 
   .main-content {
     margin-left: 0 !important;
+    width: 100% !important;
+    min-width: 0;
+    overflow-x: hidden;
     padding-bottom: 70px;
+  }
+
+  .view-content {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .bg-orbs {
+    display: none;
   }
 }
