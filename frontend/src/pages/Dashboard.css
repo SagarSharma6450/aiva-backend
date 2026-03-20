@@ -1516,3 +1516,22 @@
     justify-content: center;
   }
 }
+/* ── Bottom nav: desktop hidden, mobile only ── */
+.bottom-nav {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .bottom-nav {
+    display: flex;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding-bottom: 70px;
+  }
+}
