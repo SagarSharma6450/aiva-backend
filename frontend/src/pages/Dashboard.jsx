@@ -105,6 +105,7 @@ const HOW_IT_WORKS = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeView, setActiveView] = useState('dashboard');
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -242,8 +243,19 @@ export default function Dashboard() {
       {/* Main */}
       <main className="main-content">
         <header className="topbar">
-          <div className="topbar-left">
-            <div className="topbar-breadcrumb">
+  <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+    {/* Hamburger - mobile only */}
+    <button
+      className="hamburger-btn"
+      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <div className="topbar-breadcrumb">
               <span className="breadcrumb-root">AIVA</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
               <span className="breadcrumb-current">{breadcrumbLabel[activeView]}</span>
@@ -266,6 +278,41 @@ export default function Dashboard() {
             )}
           </div>
         </header>
+
+        {/* Mobile slide-in menu */}
+        {mobileMenuOpen && (
+          <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
+            <div className="mobile-menu" onClick={e => e.stopPropagation()}>
+              <div className="mobile-menu-header">
+                <div className="brand-logo"><span className="brand-icon">A</span></div>
+                <span className="brand-name">AIVA</span>
+                <button className="mobile-menu-close" onClick={() => setMobileMenuOpen(false)}>✕</button>
+              </div>
+              <nav className="mobile-menu-nav">
+                {NAV_ITEMS.map((item) => (
+                  <button
+                    key={item.id}
+                    className={`mobile-menu-item ${activeView === item.id ? 'mobile-menu-item-active' : ''}`}
+                    onClick={() => { setActiveView(item.id); setMobileMenuOpen(false); }}
+                  >
+                    <span className="nav-icon">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </nav>
+              <div className="mobile-menu-footer">
+                <div className="user-avatar">{firstInitial}</div>
+                <div className="user-info">
+                  <span className="user-name">{userName}</span>
+                  <span className="user-email">{userEmail}</span>
+                </div>
+                <button className="logout-btn" onClick={handleLogout}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ══ HOME VIEW ══ */}
         {activeView === 'dashboard' && (
