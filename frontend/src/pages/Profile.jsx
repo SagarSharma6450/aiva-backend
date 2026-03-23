@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProfile, updateProfile } from '../api/profile';
+import { uploadResume, checkResumeStatus } from '../api/resume';
 import './Profile.css';
 
 const PROFESSION_LABELS = {
@@ -18,6 +19,9 @@ export default function Profile() {
   const [designation, setDesignation] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [hasResume, setHasResume] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState('');
   const [toast, setToast] = useState(false);
 
   useEffect(() => {
@@ -29,6 +33,7 @@ export default function Profile() {
         setName(data.name || '');
         setProfession(data.profession || 'STUDENT');
         setDesignation(data.designation || '');
+        checkResumeStatus().then(setHasResume).catch(() => {});
       })
       .catch(() => navigate('/login'))
       .finally(() => setLoading(false));
@@ -62,6 +67,26 @@ export default function Profile() {
     setEditing(false);
     setError('');
   };
+
+  const handleResumeUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.type !== 'application/pdf') {
+    setUploadMsg('Only PDF files are allowed');
+    return;
+  }
+  setUploading(true);
+  setUploadMsg('');
+  try {
+    await uploadResume(file);
+    setHasResume(true);
+    setUploadMsg('Resume uploaded successfully!');
+  } catch (err) {
+    setUploadMsg('Upload failed. Try again.');
+  } finally {
+    setUploading(false);
+  }
+};
 
   const initials = profile?.name
     ? profile.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
@@ -210,6 +235,33 @@ export default function Profile() {
                       <span className="detail-value">{profile?.designation || '—'}</span>
                     </div>
                   </div>
+                )}
+              </div>
+
+              {/* Resume Upload */}
+              <div className="profile-resume-section">
+                <h3 className="account-section-title">Resume</h3>
+                <div className="resume-upload-box">
+                  {hasResume ? (
+                    <span className="resume-status">✅ Resume uploaded — interviews will be personalized</span>
+                  ) : (
+                    <span className="resume-status">📄 No resume uploaded yet</span>
+                  )}
+                  <label className="resume-upload-btn">
+                    {uploading ? 'Uploading...' : hasResume ? 'Replace Resume' : 'Upload PDF'}
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={handleResumeUpload}
+                      disabled={uploading}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+                {uploadMsg && (
+                  <p className="resume-msg" style={{ color: uploadMsg.includes('success') ? 'var(--accent)' : 'var(--error)' }}>
+                    {uploadMsg}
+                  </p>
                 )}
               </div>
 
