@@ -146,6 +146,13 @@ public class interviewService {
 
        String roleTitle = session.getRole();
 
+// Get user's resume text for personalization
+var user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+String resumeContext = (user.getResumeText() != null && !user.getResumeText().isBlank())
+        ? "\n\nCandidate Resume Summary:\n" + user.getResumeText().substring(0, Math.min(1500, user.getResumeText().length()))
+        : "";
+
 // Build list of already-asked questions to avoid repetition
 String alreadyAsked = existing.isEmpty() ? "None" :
         java.util.stream.IntStream.range(0, existing.size())
@@ -163,11 +170,13 @@ String systemPrompt = "You are a strict technical interviewer conducting a " + r
         "3. NEVER ask generic CS theory (no OS, Networking, DBMS theory) unless it directly applies to " + roleTitle + ".\n" +
         "4. NEVER repeat or paraphrase any previously asked question.\n" +
         "5. Each question must cover a DIFFERENT topic/concept from the previous ones.\n" +
-        "6. Return ONLY the question text — no numbering, no preamble, no explanation.";
+        "6. Return ONLY the question text — no numbering, no preamble, no explanation." +
+        (resumeContext.isBlank() ? "" : "\n7. Personalize questions based on the candidate's resume experience where relevant.");
 
 String userPrompt = "Generate question " + (currentIndex + 1) + " of " + session.getQuestionCount() + " for a " + roleTitle + " interview.\n\n" +
         "Questions already asked (DO NOT repeat these topics):\n" + alreadyAsked + "\n\n" +
-        "Pick a fresh topic from: " + domainTopics + ". Ask a basic or intermediate level question on it.";
+        "Pick a fresh topic from: " + domainTopics + ". Ask a basic or intermediate level question on it." +
+        resumeContext;
 
         String questionText = groqService.chat(systemPrompt, userPrompt);
 

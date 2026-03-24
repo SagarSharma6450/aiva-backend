@@ -36,6 +36,9 @@ public class user {
 
     @Column(nullable = false)
     private String role;
+    
+    @Column(columnDefinition = "TEXT")
+    private String resumeText;
 
     private String profession;      // STUDENT or WORKING_PROFESSIONAL
     private String designation;     // e.g. "Software Engineer" - for working professionals
