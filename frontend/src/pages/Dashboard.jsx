@@ -3,6 +3,7 @@ import './Dashboard.css';
 import { useNavigate, Link } from 'react-router-dom';
 import { getMockInterviewTypes, startSession, getInterviewHistory } from '../api/interview';
 import { getProfile } from '../api/profile';
+import { checkResumeStatus } from '../api/resume';
 import InterviewModal from '../components/InterviewModal';
 
 const INTERVIEW_ICONS = {
@@ -112,6 +113,7 @@ export default function Dashboard() {
   const [interviewTypes, setInterviewTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalInterview, setModalInterview] = useState(null);
+  const [hasResume, setHasResume] = useState(false);
   const menuRef = useRef(null);
 
   const [userName, setUserName] = useState('');
@@ -139,6 +141,7 @@ export default function Dashboard() {
       if (profile?.name) setUserName(profile.name);
       if (profile?.email) setUserEmail(profile.email);
       if (hist) setHistory(hist);
+      checkResumeStatus().then(setHasResume).catch(() => {});
     }).finally(() => setHistoryLoading(false));
   }, []);
 
@@ -584,13 +587,14 @@ export default function Dashboard() {
 
       </main>
 
-      {modalInterview && (
-        <InterviewModal
-          interview={modalInterview}
-          onClose={() => setModalInterview(null)}
-          onStart={handleStartInterview}
-        />
-      )}
+     {modalInterview && (
+  <InterviewModal
+    interview={modalInterview}
+    onClose={() => setModalInterview(null)}
+    onStart={handleStartInterview}
+    hasResume={hasResume}
+  />
+)}
     </div>
   );
 }

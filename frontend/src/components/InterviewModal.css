@@ -124,3 +124,30 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+.modal-resume-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(57, 211, 83, 0.1);
+  border: 1px solid rgba(57, 211, 83, 0.3);
+  color: var(--accent);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.modal-resume-missing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
