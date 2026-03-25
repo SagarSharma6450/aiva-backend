@@ -478,6 +478,31 @@
   line-height: 1.5;
   margin: 0;
 }
+@media (max-width: 640px) {
+  .tips-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .tip-card {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .tip-card:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+
+  .tip-icon {
+    font-size: 1.4rem;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+}
+
 /* ── Timer ── */
 .interview-header-right {
   display: flex;
