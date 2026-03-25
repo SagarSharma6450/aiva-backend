@@ -485,11 +485,12 @@
   }
 
   .tip-card {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    gap: 4px 12px;
     padding: 14px;
+    align-items: start;
   }
 
   .tip-card:last-child:nth-child(odd) {
@@ -499,7 +500,24 @@
   .tip-icon {
     font-size: 1.4rem;
     margin-bottom: 0;
-    flex-shrink: 0;
+    grid-row: 1 / 3;
+    grid-column: 1;
+    padding-top: 2px;
+  }
+
+  .tip-card h4 {
+    font-size: 0.9rem;
+    margin-bottom: 0;
+    grid-row: 1;
+    grid-column: 2;
+    align-self: center;
+  }
+
+  .tip-card p {
+    font-size: 0.82rem;
+    grid-row: 2;
+    grid-column: 2;
+    margin: 0;
   }
 }
 
