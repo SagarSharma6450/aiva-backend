@@ -36,11 +36,11 @@ export default function InterviewModal({ interview, onClose, onStart, hasResume 
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="modal-field">
             <label>Interview Duration (minutes)</label>
-            <select value={duration} onChange={(e) => setDuration(Number(e.target.value))}>
-              {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>{n} min</option>
-              ))}
-            </select>
+           <select value={duration} onChange={(e) => setDuration(Number(e.target.value))}>
+  {[5, 10, 15, 20, 25, 30].map((n) => (
+    <option key={n} value={n}>{n} min</option>
+  ))}
+</select>
           </div>
           <div className="modal-field">
             <label>Number of Questions</label>
