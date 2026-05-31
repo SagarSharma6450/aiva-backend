@@ -52,11 +52,10 @@ public class securityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Use patterns to support all Vercel deployment URLs (previews, production, etc.)
-        configuration.setAllowedOriginPatterns(List.of(
-            "https://aiva-backend.vercel.app",
-            "https://*.vercel.app",
-            "http://localhost:*"
-        ));
+        configuration.setAllowedOrigins(List.of(
+    "https://aiva-backend.vercel.app",
+    "https://aiva-backend-c0rw9h4z5-sagarsharma6450s-projects.vercel.app"
+));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
