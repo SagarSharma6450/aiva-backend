@@ -1,0 +1,128 @@
+.intro-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 10%, rgba(34, 160, 107, 0.14), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 85% 90%, rgba(63, 127, 224, 0.12), transparent 60%),
+    #f9fbfd;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+  opacity: 1;
+  visibility: visible;
+}
+
+.intro-splash.intro-leaving {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.intro-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+  animation: fadeUpIn 0.5s ease-out;
+}
+
+/* ── 3D rotating orb ── */
+.intro-orb-3d {
+  width: 132px;
+  height: 132px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+  perspective: 700px;
+}
+
+.intro-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(34, 160, 107, 0.35);
+  transform-style: preserve-3d;
+  animation: introRingSpin 5s linear infinite;
+}
+
+.intro-ring.r1 { width: 100%; height: 100%; animation-duration: 6s; }
+.intro-ring.r2 {
+  width: 74%;
+  height: 74%;
+  border-color: rgba(63, 127, 224, 0.4);
+  animation-duration: 4.2s;
+  animation-direction: reverse;
+}
+.intro-ring.r3 {
+  width: 48%;
+  height: 48%;
+  border-color: rgba(155, 125, 224, 0.45);
+  animation-duration: 3s;
+}
+
+@keyframes introRingSpin {
+  0%   { transform: rotateX(55deg) rotateZ(0deg); }
+  100% { transform: rotateX(55deg) rotateZ(360deg); }
+}
+
+.intro-core {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22a06b, #3f7fe0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 14px 30px rgba(34, 160, 107, 0.35), inset 0 2px 6px rgba(255,255,255,0.4);
+  animation: introCoreBob 2.4s ease-in-out infinite;
+  transform-style: preserve-3d;
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes introCoreBob {
+  0%, 100% { transform: translateY(0) rotateY(0deg); }
+  50% { transform: translateY(-8px) rotateY(180deg); }
+}
+
+/* ── Typing text ── */
+.intro-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--text-primary, #1f2a3a);
+  min-height: 2.4rem;
+}
+
+.intro-subtitle {
+  margin-top: 6px;
+  font-size: 0.98rem;
+  color: var(--text-muted, #6b7686);
+  min-height: 1.4rem;
+  letter-spacing: 0.01em;
+}
+
+.intro-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  background: #22a06b;
+  vertical-align: -0.15em;
+  animation: blinkCursor 0.9s step-start infinite;
+}
+
+@media (max-width: 480px) {
+  .intro-orb-3d { width: 104px; height: 104px; margin-bottom: 20px; }
+  .intro-core { width: 44px; height: 44px; font-size: 0.9rem; }
+  .intro-title { font-size: 1.6rem; }
+  .intro-subtitle { font-size: 0.85rem; padding: 0 10px; }
+}

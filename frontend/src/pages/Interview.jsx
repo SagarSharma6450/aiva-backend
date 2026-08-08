@@ -367,8 +367,8 @@ const getTimerClass = () => {
     const scoreNum = parseFloat(result.score) || 0;
     const scorePercent = (scoreNum / 10) * 100;
     const lostPercent = 100 - scorePercent;
-    const scoreColor = '#4caf50';
-    const remainColor = '#555';
+    const scoreColor = '#22a06b';
+    const remainColor = '#e4e8f0';
 
     return (
       <div className="interview-page">

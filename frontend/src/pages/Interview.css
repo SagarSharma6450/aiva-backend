@@ -87,7 +87,7 @@
 
 .interview-btn {
   background: var(--accent);
-  color: var(--bg-dark);
+  color: #ffffff;
   border: none;
   padding: 12px 24px;
   border-radius: 8px;
@@ -186,7 +186,7 @@
 .fullscreen-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(15, 23, 42, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -203,7 +203,7 @@
   max-width: 460px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.14);
   animation: modalSlideIn 0.3s ease-out;
 }
 
@@ -259,7 +259,7 @@
 
 /* Warning-specific styles */
 .warning-overlay {
-  background: rgba(40, 0, 0, 0.9);
+  background: rgba(80, 20, 20, 0.45);
 }
 
 .warning-modal {
@@ -361,7 +361,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
 }
 
 .result-pie-inner {
@@ -682,8 +682,8 @@
 
 .interview-timer.timer-safe {
   color: var(--accent);
-  background: rgba(57, 211, 83, 0.08);
-  border-color: rgba(57, 211, 83, 0.25);
+  background: rgba(34, 160, 107, 0.08);
+  border-color: rgba(34, 160, 107, 0.25);
 }
 
 .interview-timer.timer-warning {
@@ -694,9 +694,9 @@
 }
 
 .interview-timer.timer-danger {
-  color: #f85149;
-  background: rgba(248, 81, 73, 0.12);
-  border-color: rgba(248, 81, 73, 0.35);
+  color: #e5484d;
+  background: rgba(229, 72, 77, 0.12);
+  border-color: rgba(229, 72, 77, 0.35);
   animation: timerPulse 0.7s ease-in-out infinite;
 }
 
