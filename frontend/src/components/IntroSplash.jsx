@@ -3,11 +3,13 @@ import './IntroSplash.css';
 
 const LINE_1 = 'AIVA';
 const LINE_2 = 'AI Interview & Virtual Assistant';
+const LINE_3 = 'Practice smarter. Interview better.';
 
 export default function IntroSplash({ onDone }) {
   const [typedTop, setTypedTop] = useState('');
   const [typedSub, setTypedSub] = useState('');
-  const [phase, setPhase] = useState('top'); // top -> sub -> hold -> leaving
+  const [typedTag, setTypedTag] = useState('');
+  const [phase, setPhase] = useState('top');
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
@@ -19,7 +21,7 @@ export default function IntroSplash({ onDone }) {
         clearInterval(topTimer);
         setPhase('sub');
       }
-    }, 130);
+    }, 120);
     return () => clearInterval(topTimer);
   }, []);
 
@@ -31,16 +33,30 @@ export default function IntroSplash({ onDone }) {
       setTypedSub(LINE_2.slice(0, j));
       if (j >= LINE_2.length) {
         clearInterval(subTimer);
-        setPhase('hold');
+        setPhase('tag');
       }
-    }, 32);
+    }, 28);
     return () => clearInterval(subTimer);
   }, [phase]);
 
   useEffect(() => {
+    if (phase !== 'tag') return;
+    let k = 0;
+    const tagTimer = setInterval(() => {
+      k++;
+      setTypedTag(LINE_3.slice(0, k));
+      if (k >= LINE_3.length) {
+        clearInterval(tagTimer);
+        setPhase('hold');
+      }
+    }, 35);
+    return () => clearInterval(tagTimer);
+  }, [phase]);
+
+  useEffect(() => {
     if (phase !== 'hold') return;
-    const holdTimer = setTimeout(() => setLeaving(true), 650);
-    const doneTimer = setTimeout(() => onDone && onDone(), 1250);
+    const holdTimer = setTimeout(() => setLeaving(true), 700);
+    const doneTimer = setTimeout(() => onDone && onDone(), 1300);
     return () => {
       clearTimeout(holdTimer);
       clearTimeout(doneTimer);
@@ -49,22 +65,36 @@ export default function IntroSplash({ onDone }) {
 
   return (
     <div className={`intro-splash ${leaving ? 'intro-leaving' : ''}`}>
+      <div className="intro-grid" aria-hidden="true" />
       <div className="intro-scene">
         <div className="intro-orb-3d">
           <div className="intro-ring r1" />
           <div className="intro-ring r2" />
           <div className="intro-ring r3" />
-          <div className="intro-core">AI</div>
+          <div className="intro-core">
+            <span className="intro-core-icon">AI</span>
+            <div className="intro-core-glow" />
+          </div>
         </div>
 
-        <h1 className="intro-title">
-          {typedTop}
-          {phase === 'top' && <span className="intro-cursor" />}
-        </h1>
-        <p className="intro-subtitle">
-          {typedSub}
-          {phase === 'sub' && <span className="intro-cursor" />}
-        </p>
+        <div className="intro-text-block">
+          <h1 className="intro-title">
+            {typedTop}
+            {phase === 'top' && <span className="intro-cursor" />}
+          </h1>
+          <p className="intro-subtitle">
+            {typedSub}
+            {phase === 'sub' && <span className="intro-cursor" />}
+          </p>
+          <p className="intro-tagline">
+            {typedTag}
+            {phase === 'tag' && <span className="intro-cursor intro-cursor-muted" />}
+          </p>
+        </div>
+
+        <div className="intro-progress">
+          <div className={`intro-progress-bar ${phase === 'hold' || leaving ? 'intro-progress-done' : ''}`} />
+        </div>
       </div>
     </div>
   );

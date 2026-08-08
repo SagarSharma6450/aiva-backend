@@ -5,6 +5,7 @@ import { getMockInterviewTypes, startSession, getInterviewHistory } from '../api
 import { getProfile } from '../api/profile';
 import { checkResumeStatus } from '../api/resume';
 import InterviewModal from '../components/InterviewModal';
+import TypewriterText from '../components/TypewriterText';
 
 const INTERVIEW_ICONS = {
   java: '☕',
@@ -265,7 +266,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="topbar-right" ref={menuRef}>
-            <div className="topbar-greeting">Hi, <strong>{firstName || 'there'}</strong> 👋</div>
+            <div className="topbar-greeting">Hi, <strong>{firstName || 'there'}</strong></div>
             <button className="topbar-avatar" onClick={() => setMenuOpen(!menuOpen)}>{firstInitial}</button>
             {menuOpen && (
               <div className="topbar-dropdown">
@@ -329,7 +330,11 @@ export default function Dashboard() {
                   {firstName ? `Welcome back, ${firstName}!` : 'Ace Your Next Interview'}
                 </h1>
                 <p className="hero-sub">
-                  AIVA — <strong>AI Interview And Virtual Assistant</strong> — gives you a real interview experience with instant AI feedback, adaptive questions, and detailed score reports.
+                  <TypewriterText
+                    text="Your personal AI interviewer — instant feedback, adaptive questions, and detailed score reports."
+                    speed={22}
+                    delay={400}
+                  />
                 </p>
                 <div className="hero-actions">
                   <button className="hero-btn-primary" onClick={() => setActiveView('interviews')}>
@@ -384,7 +389,7 @@ export default function Dashboard() {
             </div>
             <div className="features-grid">
               {FEATURES.map((f, i) => (
-                <div key={i} className="feature-card" style={{ animationDelay: `${i * 60}ms` }}>
+                <div key={i} className="feature-card tilt-3d" style={{ animationDelay: `${i * 60}ms` }}>
                   <div className={`feature-icon ${f.color}`}>{f.icon}</div>
                   <h3 className="feature-title">{f.title}</h3>
                   <p className="feature-desc">{f.desc}</p>
@@ -441,7 +446,7 @@ export default function Dashboard() {
             ) : (
               <div className="interview-cards-grid">
                 {interviewTypes.map((item, idx) => (
-                  <div key={item.id} className="interview-card" style={{ animationDelay: `${idx * 60}ms` }}>
+                  <div key={item.id} className="interview-card tilt-3d" style={{ animationDelay: `${idx * 60}ms` }}>
                     <div className="interview-card-top">
                       <div className="interview-card-icon">{INTERVIEW_ICONS[item.id] || '💼'}</div>
                       <div className="interview-card-badge">AI Powered</div>

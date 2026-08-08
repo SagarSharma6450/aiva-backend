@@ -5,11 +5,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    radial-gradient(ellipse 60% 50% at 20% 10%, rgba(34, 160, 107, 0.14), transparent 60%),
-    radial-gradient(ellipse 55% 45% at 85% 90%, rgba(63, 127, 224, 0.12), transparent 60%),
-    #f9fbfd;
-  transition: opacity 0.6s ease, visibility 0.6s ease;
+  background: #f8fafc;
+  transition: opacity 0.55s ease, visibility 0.55s ease;
   opacity: 1;
   visibility: visible;
 }
@@ -19,110 +16,180 @@
   visibility: hidden;
 }
 
+.intro-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .intro-scene {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 24px;
-  animation: fadeUpIn 0.5s ease-out;
+  padding: 32px;
+  animation: fadeUpIn 0.6s ease-out;
+  position: relative;
+  z-index: 1;
 }
 
-/* ── 3D rotating orb ── */
+/* ── 3D orb scene ── */
 .intro-orb-3d {
-  width: 132px;
-  height: 132px;
+  width: 148px;
+  height: 148px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 28px;
-  perspective: 700px;
+  margin-bottom: 36px;
+  perspective: 800px;
 }
 
 .intro-ring {
   position: absolute;
   border-radius: 50%;
-  border: 2px solid rgba(34, 160, 107, 0.35);
+  border: 2px solid transparent;
   transform-style: preserve-3d;
-  animation: introRingSpin 5s linear infinite;
+  animation: ringSpin3d linear infinite;
 }
 
-.intro-ring.r1 { width: 100%; height: 100%; animation-duration: 6s; }
+.intro-ring.r1 {
+  width: 100%;
+  height: 100%;
+  border-color: rgba(79, 110, 247, 0.25);
+  animation-duration: 7s;
+}
+
 .intro-ring.r2 {
-  width: 74%;
-  height: 74%;
-  border-color: rgba(63, 127, 224, 0.4);
-  animation-duration: 4.2s;
+  width: 72%;
+  height: 72%;
+  border-color: rgba(13, 148, 136, 0.3);
+  animation-duration: 5s;
   animation-direction: reverse;
 }
-.intro-ring.r3 {
-  width: 48%;
-  height: 48%;
-  border-color: rgba(155, 125, 224, 0.45);
-  animation-duration: 3s;
-}
 
-@keyframes introRingSpin {
-  0%   { transform: rotateX(55deg) rotateZ(0deg); }
-  100% { transform: rotateX(55deg) rotateZ(360deg); }
+.intro-ring.r3 {
+  width: 46%;
+  height: 46%;
+  border-color: rgba(139, 92, 246, 0.35);
+  animation-duration: 3.5s;
 }
 
 .intro-core {
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #22a06b, #3f7fe0);
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #4f6ef7 0%, #0d9488 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 1.05rem;
-  letter-spacing: 0.02em;
-  box-shadow: 0 14px 30px rgba(34, 160, 107, 0.35), inset 0 2px 6px rgba(255,255,255,0.4);
-  animation: introCoreBob 2.4s ease-in-out infinite;
-  transform-style: preserve-3d;
   position: relative;
   z-index: 2;
+  box-shadow:
+    0 16px 40px rgba(79, 110, 247, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  animation: float3d 3s ease-in-out infinite;
+  transform-style: preserve-3d;
 }
 
-@keyframes introCoreBob {
-  0%, 100% { transform: translateY(0) rotateY(0deg); }
-  50% { transform: translateY(-8px) rotateY(180deg); }
+.intro-core-icon {
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.intro-core-glow {
+  position: absolute;
+  inset: -8px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(79, 110, 247, 0.4), rgba(13, 148, 136, 0.3));
+  filter: blur(12px);
+  z-index: -1;
+  animation: pulseSoft 2.5s ease-in-out infinite;
 }
 
 /* ── Typing text ── */
+.intro-text-block {
+  max-width: 420px;
+}
+
 .intro-title {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 2.1rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: var(--text-primary, #1f2a3a);
-  min-height: 2.4rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  min-height: 2.8rem;
+  line-height: 1.1;
 }
 
 .intro-subtitle {
-  margin-top: 6px;
-  font-size: 0.98rem;
-  color: var(--text-muted, #6b7686);
-  min-height: 1.4rem;
-  letter-spacing: 0.01em;
+  margin-top: 10px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-height: 1.5rem;
+}
+
+.intro-tagline {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  min-height: 1.3rem;
+  font-style: italic;
 }
 
 .intro-cursor {
   display: inline-block;
   width: 2px;
   height: 1em;
-  margin-left: 3px;
-  background: #22a06b;
-  vertical-align: -0.15em;
-  animation: blinkCursor 0.9s step-start infinite;
+  margin-left: 2px;
+  background: var(--accent);
+  vertical-align: -0.12em;
+  animation: blinkCursor 0.85s step-start infinite;
+}
+
+.intro-cursor-muted {
+  background: var(--text-muted);
+}
+
+/* ── Loading bar ── */
+.intro-progress {
+  margin-top: 32px;
+  width: 180px;
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.intro-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #4f6ef7, #0d9488);
+  border-radius: 99px;
+  animation: introLoadBar 2.8s ease-out forwards;
+}
+
+.intro-progress-bar.intro-progress-done {
+  width: 100%;
+}
+
+@keyframes introLoadBar {
+  0% { width: 0%; }
+  70% { width: 85%; }
+  100% { width: 100%; }
 }
 
 @media (max-width: 480px) {
-  .intro-orb-3d { width: 104px; height: 104px; margin-bottom: 20px; }
-  .intro-core { width: 44px; height: 44px; font-size: 0.9rem; }
-  .intro-title { font-size: 1.6rem; }
-  .intro-subtitle { font-size: 0.85rem; padding: 0 10px; }
+  .intro-orb-3d { width: 120px; height: 120px; margin-bottom: 28px; }
+  .intro-core { width: 48px; height: 48px; border-radius: 14px; }
+  .intro-core-icon { font-size: 0.85rem; }
+  .intro-title { font-size: 1.85rem; }
+  .intro-subtitle { font-size: 0.92rem; }
 }
