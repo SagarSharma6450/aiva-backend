@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 
 /**
- * Character-by-character typing animation with blinking cursor.
+ * Character-by-character typing animation with a smooth framer-motion cursor.
  */
 export default function TypewriterText({
   text,
@@ -35,6 +36,8 @@ export default function TypewriterText({
           onComplete?.();
         }
       }, speed);
+      
+      return () => clearInterval(interval);
     }, delay);
 
     return () => clearTimeout(startTimer);
@@ -43,7 +46,20 @@ export default function TypewriterText({
   return (
     <span className={className}>
       {displayed}
-      {active && !done && <span className="typewriter-cursor" />}
+      {active && !done && (
+        <motion.span
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+          style={{ 
+            color: 'var(--accent-main)', 
+            marginLeft: '4px',
+            display: 'inline-block',
+            fontWeight: '600'
+          }}
+        >
+          |
+        </motion.span>
+      )}
     </span>
   );
 }

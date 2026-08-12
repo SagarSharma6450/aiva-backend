@@ -1,5 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Target, Search, Clock, BrainCircuit, MessageSquare, 
+  Monitor, AlertTriangle, ArrowLeft, ArrowRight, CheckCircle, 
+  BarChart2, Save, Play, RefreshCw
+} from 'lucide-react';
 import { getNextQuestion, submitAnswer, getSessionResult, getSessionQuestions } from '../api/interview';
 import './Interview.css';
 
@@ -12,12 +18,13 @@ const TYPE_LABELS = {
   behavioral: 'HR / Behavioral',
 };
 
+// Replaced emojis with modern Lucide icons
 const INTERVIEW_TIPS = [
-  { icon: '🎯', title: 'Use the STAR Method', text: 'Structure your answers with Situation, Task, Action, and Result to give clear, impactful responses.' },
-  { icon: '🔍', title: 'Research the Company', text: 'Study the company\'s products, culture, and recent news. Tailor your answers to show genuine interest.' },
-  { icon: '⏱️', title: 'Practice Time Management', text: 'Keep answers concise — aim for 1-2 minutes per response. Rambling loses the interviewer\'s attention.' },
-  { icon: '🤔', title: 'Think Before You Speak', text: 'It\'s okay to pause and collect your thoughts. A well-structured answer beats a rushed one every time.' },
-  { icon: '💬', title: 'Ask Thoughtful Questions', text: 'Prepare 2-3 questions about the role, team, or challenges. It shows you\'re genuinely engaged and curious.' },
+  { icon: Target, title: 'Use the STAR Method', text: 'Structure your answers with Situation, Task, Action, and Result to give clear, impactful responses.' },
+  { icon: Search, title: 'Research the Company', text: 'Study the company\'s products, culture, and recent news. Tailor your answers to show genuine interest.' },
+  { icon: Clock, title: 'Practice Time Management', text: 'Keep answers concise — aim for 1-2 minutes per response. Rambling loses the interviewer\'s attention.' },
+  { icon: BrainCircuit, title: 'Think Before You Speak', text: 'It\'s okay to pause and collect your thoughts. A well-structured answer beats a rushed one every time.' },
+  { icon: MessageSquare, title: 'Ask Thoughtful Questions', text: 'Prepare 2-3 questions about the role, team, or challenges. It shows you\'re genuinely engaged and curious.' },
 ];
 
 export default function Interview() {
@@ -47,7 +54,7 @@ export default function Interview() {
   const autoSubmittedRef = useRef(false);
   const interviewActiveRef = useRef(false);
 
-  // Enter fullscreen
+  // YOUR EXACT LOGIC - UNTOUCHED FROM HERE DOWN TO RENDER
   const enterFullscreen = useCallback(() => {
     const el = document.documentElement;
     const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
@@ -56,7 +63,6 @@ export default function Interview() {
         setIsFullscreen(true);
         interviewActiveRef.current = true;
       }).catch(() => {
-        // Fullscreen denied, proceed anyway
         interviewActiveRef.current = true;
       });
     } else {
@@ -64,74 +70,66 @@ export default function Interview() {
     }
   }, []);
 
-  // Auto-submit handler for tab violations
-  // Auto-submit handler for tab violations
-const handleAutoSubmit = useCallback(async () => {
-  if (autoSubmittedRef.current) return;
-  autoSubmittedRef.current = true;
-  setAutoSubmitted(true);
-  interviewActiveRef.current = false;
+  const handleAutoSubmit = useCallback(async () => {
+    if (autoSubmittedRef.current) return;
+    autoSubmittedRef.current = true;
+    setAutoSubmitted(true);
+    interviewActiveRef.current = false;
 
-  // Exit fullscreen
-  if (document.fullscreenElement) {
-    document.exitFullscreen?.().catch(() => {});
-  }
-
-  try {
-    const sid = Number(sessionId);
-
-    // Step 1: Get all current questions for the session
-    let allQuestions = [];
-    try {
-      allQuestions = await getSessionQuestions(sid);
-    } catch {
-      allQuestions = [];
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
     }
 
-    // Step 2: Submit empty answers for any unanswered questions
-    for (const q of allQuestions) {
-      if (!q.userAnswer) {
-        try {
-          await submitAnswer(sid, q.questionId, '-');
-        } catch {
-          // continue even if one fails
+    try {
+      const sid = Number(sessionId);
+      let allQuestions = [];
+      try {
+        allQuestions = await getSessionQuestions(sid);
+      } catch {
+        allQuestions = [];
+      }
+
+      for (const q of allQuestions) {
+        if (!q.userAnswer) {
+          try {
+            await submitAnswer(sid, q.questionId, '-');
+          } catch {
+            // continue
+          }
         }
       }
-    }
 
-    // Step 3: Keep fetching & submitting remaining questions until result is ready
-    let attempt = 0;
-    const maxAttempts = 20;
-    let resultRes = null;
-    while (attempt < maxAttempts) {
-      attempt++;
-      try {
-        resultRes = await getSessionResult(sid);
-        break;
-      } catch {
+      let attempt = 0;
+      const maxAttempts = 20;
+      let resultRes = null;
+      while (attempt < maxAttempts) {
+        attempt++;
         try {
-          const next = await getNextQuestion(sid);
-          if (next && next.questionId) {
-            await submitAnswer(sid, next.questionId, '-');
-          } else {
+          resultRes = await getSessionResult(sid);
+          break;
+        } catch {
+          try {
+            const next = await getNextQuestion(sid);
+            if (next && next.questionId) {
+              await submitAnswer(sid, next.questionId, '-');
+            } else {
+              break;
+            }
+          } catch {
             break;
           }
-        } catch {
-          break;
         }
       }
-    }
 
-    if (resultRes) {
-      setResult(resultRes);
+      if (resultRes) {
+        setResult(resultRes);
+      }
+      setInterviewDone(true);
+    } catch {
+      setInterviewDone(true);
     }
-    setInterviewDone(true);
-  } catch {
-    setInterviewDone(true);
-  }
-}, [sessionId]);
+  }, [sessionId]);
 
-  // Tab visibility & fullscreen change detection
   useEffect(() => {
     if (!sessionId || !interviewActiveRef.current) return;
 
@@ -177,15 +175,14 @@ const handleAutoSubmit = useCallback(async () => {
     if (!sessionId) return;
     setLoading(true);
 
-    // Show fullscreen prompt when interview loads
     setShowFullscreenPrompt(true);
-// Set timer from session - fetch duration
-const storedDuration = sessionStorage.getItem(`interview_duration_${sessionId}`);
-if (storedDuration) {
-  const secs = parseInt(storedDuration) * 60;
-  setTimeLeft(secs);
-  setTotalTime(secs);
-}
+    const storedDuration = sessionStorage.getItem(`interview_duration_${sessionId}`);
+    if (storedDuration) {
+      const secs = parseInt(storedDuration) * 60;
+      setTimeLeft(secs);
+      setTotalTime(secs);
+    }
+
     getSessionQuestions(Number(sessionId))
       .then((existing) => {
         if (existing && existing.length > 0) {
@@ -227,7 +224,6 @@ if (storedDuration) {
       .catch(() => navigate('/dashboard'))
       .finally(() => setLoading(false));
 
-    // Cleanup: exit fullscreen when leaving
     return () => {
       interviewActiveRef.current = false;
       if (document.fullscreenElement) {
@@ -236,30 +232,29 @@ if (storedDuration) {
     };
   }, [navigate, sessionId]);
 
-// Countdown timer
-useEffect(() => {
-  if (timeLeft === null || interviewDone || result) return;
-  if (!isFullscreen && !interviewActiveRef.current) return;
+  useEffect(() => {
+    if (timeLeft === null || interviewDone || result) return;
+    if (!isFullscreen && !interviewActiveRef.current) return;
 
-  if (timeLeft <= 0) {
-    setTimeExpired(true);
-    handleAutoSubmit();
-    return;
-  }
+    if (timeLeft <= 0) {
+      setTimeExpired(true);
+      handleAutoSubmit();
+      return;
+    }
 
-  timerRef.current = setTimeout(() => {
-    setTimeLeft((prev) => {
-      if (prev <= 1) {
-        setTimeExpired(true);
-        handleAutoSubmit();
-        return 0;
-      }
-      return prev - 1;
-    });
-  }, 1000);
+    timerRef.current = setTimeout(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          setTimeExpired(true);
+          handleAutoSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
-  return () => clearTimeout(timerRef.current);
-}, [timeLeft, interviewDone, result, isFullscreen, handleAutoSubmit]);
+    return () => clearTimeout(timerRef.current);
+  }, [timeLeft, interviewDone, result, isFullscreen, handleAutoSubmit]);
 
   const currentQuestion = questions[currentIdx] || null;
   const currentAnswer = currentQuestion ? (answers[currentQuestion.questionId] || '') : '';
@@ -274,11 +269,7 @@ useEffect(() => {
     if (!currentAnswer.trim() || !currentQuestion?.questionId) return;
     setSubmitting(true);
     try {
-      const res = await submitAnswer(
-        Number(sessionId),
-        currentQuestion.questionId,
-        currentAnswer.trim()
-      );
+      const res = await submitAnswer(Number(sessionId), currentQuestion.questionId, currentAnswer.trim());
       if (res.hasNextQuestion && res.nextQuestion) {
         const alreadyExists = questions.some((q) => q.questionId === res.nextQuestion.questionId);
         if (!alreadyExists) {
@@ -295,17 +286,8 @@ useEffect(() => {
     }
   };
 
-  const handlePrevious = () => {
-    if (currentIdx > 0) {
-      setCurrentIdx(currentIdx - 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentIdx < questions.length - 1) {
-      setCurrentIdx(currentIdx + 1);
-    }
-  };
+  const handlePrevious = () => { if (currentIdx > 0) setCurrentIdx(currentIdx - 1); };
+  const handleNext = () => { if (currentIdx < questions.length - 1) setCurrentIdx(currentIdx + 1); };
 
   const handleGetResult = async () => {
     setLoadingResult(true);
@@ -322,34 +304,30 @@ useEffect(() => {
   const title = TYPE_LABELS[typeId] || typeId || 'Mock Interview';
 
   const formatTime = (secs) => {
-  if (secs === null) return '';
-  const m = Math.floor(secs / 60);
-  const s = secs % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-};
+    if (secs === null) return '';
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
 
-const getTimerClass = () => {
-  if (timeLeft === null || totalTime === null) return '';
-  const pct = timeLeft / totalTime;
-  if (pct <= 0.1) return 'timer-danger';
-  if (pct <= 0.25) return 'timer-warning';
-  return 'timer-safe';
-};
+  const getTimerClass = () => {
+    if (timeLeft === null || totalTime === null) return '';
+    const pct = timeLeft / totalTime;
+    if (pct <= 0.1) return 'timer-danger';
+    if (pct <= 0.25) return 'timer-warning';
+    return 'timer-safe';
+  };
+
+  // ── RENDER BLOCKS ──
 
   if (!sessionId) {
     return (
-      <div className="interview-page">
-        <header className="interview-header">
-          <button className="interview-back" onClick={() => navigate('/dashboard')}>
-            ← Back to Dashboard
-          </button>
-        </header>
-        <div className="interview-card">
-          <h1>{title}</h1>
+      <div className="interview-layout">
+        <div className="glass-panel centered-card">
+          <BarChart2 size={48} className="icon-muted" />
+          <h2>{title}</h2>
           <p>Start an interview from the dashboard to begin.</p>
-          <button onClick={() => navigate('/dashboard')} className="interview-btn">
-            Go to Dashboard
-          </button>
+          <button onClick={() => navigate('/dashboard')} className="btn-primary"><ArrowLeft size={16} /> Go to Dashboard</button>
         </div>
       </div>
     );
@@ -357,8 +335,9 @@ const getTimerClass = () => {
 
   if (loading) {
     return (
-      <div className="interview-page">
-        <div className="interview-loading">Loading question...</div>
+      <div className="interview-layout loading-layout">
+        <div className="spinner"></div>
+        <p>Connecting to AI Interviewer...</p>
       </div>
     );
   }
@@ -367,118 +346,99 @@ const getTimerClass = () => {
     const scoreNum = parseFloat(result.score) || 0;
     const scorePercent = (scoreNum / 10) * 100;
     const lostPercent = 100 - scorePercent;
-    const scoreColor = '#22a06b';
-    const remainColor = '#e4e8f0';
+    const scoreColor = 'var(--success)';
+    const remainColor = 'var(--border)';
 
     return (
-      <div className="interview-page">
+      <div className="interview-layout">
         <header className="interview-header">
-          <button className="interview-back" onClick={() => navigate('/dashboard')}>
-            ← Back to Dashboard
-          </button>
+          <button className="back-btn" onClick={() => navigate('/dashboard')}><ArrowLeft size={18} /> Back to Dashboard</button>
         </header>
-        <div className="interview-card result-card">
-          <h1>Interview Evaluation</h1>
-          {autoSubmitted && !timeExpired && (
-  <div className="result-violation-notice">
-    Your interview was auto-submitted due to tab switching violations.
-  </div>
-)}
-{timeExpired && (
-  <div className="result-time-notice">
-    ⏰ Your time is up! The interview has been submitted automatically.
-  </div>
-)}
 
-          {/* Pie Chart Score Visual */}
-          <div className="result-pie-container">
-            <div
-              className="result-pie"
-              style={{
-                background: `conic-gradient(${scoreColor} 0% ${scorePercent}%, ${remainColor} ${scorePercent}% 100%)`,
-              }}
-            >
-              <div className="result-pie-inner">
-                <span className="result-pie-score">{result.score}</span>
-                <span className="result-pie-outof">/10</span>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-panel result-dashboard">
+          <div className="result-header">
+            <h1>Interview Evaluation</h1>
+            <p>Detailed breakdown of your session performance.</p>
+          </div>
+
+          {(autoSubmitted && !timeExpired) && (
+            <div className="alert-banner warning-banner"><AlertTriangle size={20} /> Your interview was auto-submitted due to tab switching violations.</div>
+          )}
+          {timeExpired && (
+            <div className="alert-banner danger-banner"><Clock size={20} /> Your time is up! The interview was submitted automatically.</div>
+          )}
+
+          <div className="result-hero-grid">
+            <div className="score-container glass-panel">
+              <div className="pie-chart-wrapper">
+                <div className="result-pie" style={{ background: `conic-gradient(${scoreColor} 0% ${scorePercent}%, ${remainColor} ${scorePercent}% 100%)` }}>
+                  <div className="result-pie-inner">
+                    <span className="pie-score">{result.score}</span>
+                    <span className="pie-outof">/10</span>
+                  </div>
+                </div>
+              </div>
+              <div className="pie-legend">
+                <div className="legend-item"><span className="legend-dot" style={{ background: scoreColor }}></span> Score ({scorePercent.toFixed(0)}%)</div>
+                <div className="legend-item"><span className="legend-dot" style={{ background: remainColor }}></span> Room to Improve ({lostPercent.toFixed(0)}%)</div>
               </div>
             </div>
-            <div className="result-pie-legend">
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: scoreColor }}></span>
-                <span>Score ({scorePercent.toFixed(0)}%)</span>
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: remainColor }}></span>
-                <span>Room to Improve ({lostPercent.toFixed(0)}%)</span>
-              </div>
+
+            <div className="feedback-container">
+              {result.strengths && (
+                <div className="feedback-card success-card">
+                  <h3><CheckCircle size={18} /> Strengths</h3>
+                  <p>{result.strengths}</p>
+                </div>
+              )}
+              {result.weaknesses && (
+                <div className="feedback-card danger-card">
+                  <h3><AlertTriangle size={18} /> Areas to Improve</h3>
+                  <p>{result.weaknesses}</p>
+                </div>
+              )}
+              {result.improvements && (
+                <div className="feedback-card info-card">
+                  <h3><Target size={18} /> What to Study</h3>
+                  <p>{result.improvements}</p>
+                </div>
+              )}
             </div>
           </div>
 
-          {result.strengths && (
-            <div className="result-section result-strengths">
-              <h3>Strengths</h3>
-              <p>{result.strengths}</p>
-            </div>
-          )}
-          {result.weaknesses && (
-            <div className="result-section result-weaknesses">
-              <h3>Areas to Improve</h3>
-              <p>{result.weaknesses}</p>
-            </div>
-          )}
-          {result.improvements && (
-            <div className="result-section result-improvements">
-              <h3>What to Study & Practice</h3>
-              <p>{result.improvements}</p>
-            </div>
-          )}
           {result.interviewTips && (
-            <div className="result-section result-tips">
-              <h3>How to Clear Real Interviews</h3>
+            <div className="tips-banner glass-panel">
+              <h3><BrainCircuit size={20} /> AI Interview Tips</h3>
               <p>{result.interviewTips}</p>
             </div>
           )}
 
-          {/* Interview Tips Section */}
-          <div className="result-tips-section">
-            <h2>Tips for Real Interviews</h2>
+          <div className="general-tips-section">
+            <h2>Best Practices for Real Interviews</h2>
             <div className="tips-grid">
               {INTERVIEW_TIPS.map((tip, i) => (
-                <div key={i} className="tip-card">
-                  <span className="tip-icon">{tip.icon}</span>
+                <div key={i} className="tip-card glass-panel tilt-3d">
+                  <div className="tip-icon"><tip.icon size={24} /></div>
                   <h4>{tip.title}</h4>
                   <p>{tip.text}</p>
                 </div>
               ))}
             </div>
           </div>
-
-          <button onClick={() => navigate('/dashboard')} className="interview-btn">
-            Return to Dashboard
-          </button>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   if (interviewDone) {
     return (
-      <div className="interview-page">
-        <header className="interview-header">
-          <button className="interview-back" onClick={() => navigate('/dashboard')}>
-            ← Back to Dashboard
-          </button>
-        </header>
-        <div className="interview-card">
-          <h1>Interview Complete!</h1>
-          <p>You've answered all questions. Click below to get your evaluation, score, and tips to improve.</p>
-          <button
-            onClick={handleGetResult}
-            disabled={loadingResult}
-            className="interview-btn"
-          >
-            {loadingResult ? 'Evaluating your performance...' : 'Get My Results'}
+      <div className="interview-layout">
+        <div className="glass-panel centered-card">
+          <CheckCircle size={64} className="icon-success" />
+          <h2>Interview Complete!</h2>
+          <p>You've answered all questions. Click below to process your final evaluation.</p>
+          <button onClick={handleGetResult} disabled={loadingResult} className="btn-primary mt-4">
+            {loadingResult ? <><RefreshCw size={18} className="spin" /> Evaluating...</> : <><BarChart2 size={18} /> Get My Results</>}
           </button>
         </div>
       </div>
@@ -491,119 +451,115 @@ const getTimerClass = () => {
   const isOnPreviousQuestion = currentIdx < questions.length - 1;
 
   return (
-    <div className="interview-page interview-page-active">
-      {/* Fullscreen Prompt Modal */}
-      {showFullscreenPrompt && !interviewDone && !result && (
-        <div className="fullscreen-overlay">
-          <div className="fullscreen-modal">
-            <div className="fullscreen-modal-icon">🖥️</div>
-            <h2>Enter Fullscreen Mode</h2>
-            <p>
-              This mock interview simulates a real test environment.<br />
-              Tab switching and exiting fullscreen are monitored.
-            </p>
-            <ul className="fullscreen-rules">
-              <li>1st violation — You will receive a warning</li>
-              <li>2nd violation — Interview auto-submits immediately</li>
-            </ul>
-            <button
-              className="interview-btn fullscreen-accept-btn"
-              onClick={() => {
-                setShowFullscreenPrompt(false);
-                enterFullscreen();
-              }}
-            >
-              I Understand, Go Fullscreen
-            </button>
-          </div>
-        </div>
-      )}
+    <div className="interview-layout active-session">
+      
+      {/* Modals via AnimatePresence */}
+      <AnimatePresence>
+        {showFullscreenPrompt && !interviewDone && !result && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="glass-panel proctor-modal">
+              <div className="modal-icon-ring"><Monitor size={32} /></div>
+              <h2>Enter Fullscreen Mode</h2>
+              <p>This mock interview simulates a proctored environment. Tab switching and exiting fullscreen are strictly monitored.</p>
+              <div className="rules-box">
+                <div className="rule"><span className="dot warning"></span> 1st violation: You receive a warning.</div>
+                <div className="rule"><span className="dot danger"></span> 2nd violation: Interview auto-submits.</div>
+              </div>
+              <button className="btn-primary w-full" onClick={() => { setShowFullscreenPrompt(false); enterFullscreen(); }}>
+                I Understand, Go Fullscreen
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
 
-      {/* Tab Switch Warning Modal */}
-      {showWarning && (
-        <div className="fullscreen-overlay warning-overlay">
-          <div className="fullscreen-modal warning-modal">
-            <div className="fullscreen-modal-icon warning-icon">⚠️</div>
-            <h2>Warning: Tab Switch Detected!</h2>
-            <p>
-              You switched tabs or exited fullscreen. This is violation <strong>{warningCount} of 2</strong>.
-            </p>
-            <p className="warning-consequence">
-              One more violation and your interview will be <strong>auto-submitted</strong> with all remaining questions.
-            </p>
-            <button
-              className="interview-btn fullscreen-accept-btn"
-              onClick={() => {
-                setShowWarning(false);
-                enterFullscreen();
-              }}
-            >
-              Return to Interview
-            </button>
-          </div>
-        </div>
-      )}
+        {showWarning && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay danger-overlay">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="glass-panel proctor-modal">
+              <div className="modal-icon-ring danger"><AlertTriangle size={32} /></div>
+              <h2>Tab Switch Detected!</h2>
+              <p>You exited fullscreen or switched tabs. This is violation <strong>{warningCount} of 2</strong>.</p>
+              <div className="rules-box danger-box">
+                One more violation and your interview will instantly auto-submit.
+              </div>
+              <button className="btn-primary danger-btn w-full" onClick={() => { setShowWarning(false); enterFullscreen(); }}>
+                Return to Interview
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <header className="interview-header">
-        <button className="interview-back" onClick={() => {
-  if (window.confirm('Are you sure you want to exit the interview session? Your progress will be lost.')) {
-    interviewActiveRef.current = false;
-    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-    navigate('/dashboard');
-  }
-}}>
-  ← Back to Dashboard
-</button>
+      <header className="active-header glass-panel">
+        <button className="back-btn" onClick={() => {
+          if (window.confirm('Are you sure you want to exit? Your progress will be lost.')) {
+            interviewActiveRef.current = false;
+            if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+            navigate('/dashboard');
+          }
+        }}>
+          <ArrowLeft size={18} /> End Session
+        </button>
+        
         {currentQuestion && (
-  <div className="interview-header-right">
-    <span className="interview-progress">
-      Question {currentQuestion.currentQuestion} of {totalQuestions}
-    </span>
-    {timeLeft !== null && (
-      <div className={`interview-timer ${getTimerClass()}`}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
-        </svg>
-        <span>{formatTime(timeLeft)}</span>
-      </div>
-    )}
-  </div>
-)}
-      </header>
-      <div className="interview-card interview-active">
-        <h2 className="interview-question">{currentQuestion?.questionText}</h2>
-        <form onSubmit={handleSubmit} className="interview-form">
-          <textarea
-            value={currentAnswer}
-            onChange={(e) => handleAnswerChange(e.target.value)}
-            placeholder="Type your answer here..."
-            rows={4}
-            disabled={submitting}
-          />
-          <div className="interview-nav">
-            {!isFirstQuestion && (
-              <button type="button" onClick={handlePrevious} className="interview-btn interview-btn-secondary" disabled={submitting}>
-                ← Previous
-              </button>
-            )}
-            {isOnPreviousQuestion ? (
-              <>
-                <button type="submit" disabled={submitting || !currentAnswer.trim()} className="interview-btn">
-                  {submitting ? 'Saving...' : 'Update Answer'}
-                </button>
-                <button type="button" onClick={handleNext} className="interview-btn" disabled={submitting}>
-                  Next →
-                </button>
-              </>
-            ) : (
-              <button type="submit" disabled={submitting || !currentAnswer.trim()} className="interview-btn">
-                {submitting ? 'Submitting...' : isLastQuestion ? 'Submit Final Answer' : 'Submit & Next'}
-              </button>
+          <div className="header-status">
+            <span className="question-counter">Question {currentQuestion.currentQuestion} of {totalQuestions}</span>
+            {timeLeft !== null && (
+              <div className={`timer-badge ${getTimerClass()}`}>
+                <Clock size={16} /> {formatTime(timeLeft)}
+              </div>
             )}
           </div>
-        </form>
-      </div>
+        )}
+      </header>
+
+      <main className="question-container">
+        <motion.div 
+          key={currentQuestion?.questionId}
+          initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}
+          className="glass-panel question-card"
+        >
+          <div className="q-badge">Question {currentQuestion?.currentQuestion}</div>
+          <h2 className="q-text">{currentQuestion?.questionText}</h2>
+          
+          <form onSubmit={handleSubmit} className="answer-form">
+            <textarea
+              className="answer-input"
+              value={currentAnswer}
+              onChange={(e) => handleAnswerChange(e.target.value)}
+              placeholder="Structure your answer clearly. Take a moment to think before you type..."
+              disabled={submitting}
+            />
+            
+            <div className="form-controls">
+              <div className="control-left">
+                {!isFirstQuestion && (
+                  <button type="button" onClick={handlePrevious} className="btn-secondary" disabled={submitting}>
+                    <ArrowLeft size={16} /> Previous
+                  </button>
+                )}
+              </div>
+              
+              <div className="control-right">
+                {isOnPreviousQuestion ? (
+                  <>
+                    <button type="submit" disabled={submitting || !currentAnswer.trim()} className="btn-secondary">
+                      <Save size={16} /> {submitting ? 'Saving...' : 'Update'}
+                    </button>
+                    <button type="button" onClick={handleNext} className="btn-primary" disabled={submitting}>
+                      Next <ArrowRight size={16} />
+                    </button>
+                  </>
+                ) : (
+                  <button type="submit" disabled={submitting || !currentAnswer.trim()} className="btn-primary submit-btn">
+                    {submitting ? <RefreshCw size={16} className="spin" /> : isLastQuestion ? <CheckCircle size={16} /> : <ArrowRight size={16} />}
+                    {submitting ? 'Submitting...' : isLastQuestion ? 'Submit Final Answer' : 'Submit & Next'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </form>
+        </motion.div>
+      </main>
     </div>
   );
 }

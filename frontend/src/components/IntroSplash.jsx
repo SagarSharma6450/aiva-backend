@@ -12,6 +12,7 @@ export default function IntroSplash({ onDone }) {
   const [phase, setPhase] = useState('top');
   const [leaving, setLeaving] = useState(false);
 
+  // YOUR EXACT LOGIC - UNTOUCHED
   useEffect(() => {
     let i = 0;
     const topTimer = setInterval(() => {
@@ -65,15 +66,16 @@ export default function IntroSplash({ onDone }) {
 
   return (
     <div className={`intro-splash ${leaving ? 'intro-leaving' : ''}`}>
+      {/* Background Dot Grid */}
       <div className="intro-grid" aria-hidden="true" />
+      
       <div className="intro-scene">
+        {/* 3D Animated Orb matching the Login Page */}
         <div className="intro-orb-3d">
           <div className="intro-ring r1" />
           <div className="intro-ring r2" />
-          <div className="intro-ring r3" />
           <div className="intro-core">
             <span className="intro-core-icon">AI</span>
-            <div className="intro-core-glow" />
           </div>
         </div>
 
@@ -92,7 +94,7 @@ export default function IntroSplash({ onDone }) {
           </p>
         </div>
 
-        <div className="intro-progress">
+        <div className="intro-progress-container">
           <div className={`intro-progress-bar ${phase === 'hold' || leaving ? 'intro-progress-done' : ''}`} />
         </div>
       </div>

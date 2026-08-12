@@ -13,6 +13,7 @@ export default function App() {
   return (
     <>
       {showIntro && <IntroSplash onDone={() => setShowIntro(false)} />}
+      
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
