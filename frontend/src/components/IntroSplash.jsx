@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AssistantScene from './AssistantScene';
 import './IntroSplash.css';
 
 const LINE_1 = 'AIVA';
@@ -66,18 +67,8 @@ export default function IntroSplash({ onDone }) {
 
   return (
     <div className={`intro-splash ${leaving ? 'intro-leaving' : ''}`}>
-      {/* Background Dot Grid */}
-      <div className="intro-grid" aria-hidden="true" />
-      
-      <div className="intro-scene">
-        {/* 3D Animated Orb matching the Login Page */}
-        <div className="intro-orb-3d">
-          <div className="intro-ring r1" />
-          <div className="intro-ring r2" />
-          <div className="intro-core">
-            <span className="intro-core-icon">AI</span>
-          </div>
-        </div>
+      <div className="intro-panel app-shell-panel">
+        <AssistantScene className="intro-assistant" label="Initializing interview assistant" />
 
         <div className="intro-text-block">
           <h1 className="intro-title">

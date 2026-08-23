@@ -1,38 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import PasswordInput from '../components/PasswordInput';
-import { signup } from '../api/auth';
 import { motion } from 'framer-motion';
+import { Mail, LockKeyhole, UserRound } from 'lucide-react';
+import PasswordInput from '../components/PasswordInput';
+import TypewriterText from '../components/TypewriterText';
+import AssistantScene from '../components/AssistantScene';
+import { signup } from '../api/auth';
 import './Auth.css';
-
-// Built-in Typewriter effect to match the login page
-const TypewriterText = ({ text, delay = 40 }) => {
-  const [displayedText, setDisplayedText] = useState("");
-  
-  useEffect(() => {
-    setDisplayedText("");
-    let i = 0;
-    const interval = setInterval(() => {
-      setDisplayedText(text.slice(0, i + 1));
-      i++;
-      if (i >= text.length) clearInterval(interval);
-    }, delay);
-    return () => clearInterval(interval);
-  }, [text, delay]);
-
-  return (
-    <span>
-      {displayedText}
-      <motion.span
-        animate={{ opacity: [0, 1, 0] }}
-        transition={{ repeat: Infinity, duration: 0.8 }}
-        style={{ color: 'var(--accent-main)', marginLeft: '4px' }}
-      >
-        |
-      </motion.span>
-    </span>
-  );
-};
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -59,35 +33,30 @@ export default function Signup() {
 
   return (
     <div className="auth-page">
-      {/* Left Panel - Brand & Animation */}
-      <div className="auth-brand-panel">
+      <section className="auth-brand-panel">
         <div className="auth-brand-inner">
-          <div className="auth-orb-scene">
-            <div className="auth-orb-ring ar1"></div>
-            <div className="auth-orb-ring ar2"></div>
-            <div className="auth-orb-core">AI</div>
-          </div>
-          
-          <h1 className="auth-logo">
-            <TypewriterText text="Join AIVA today." delay={50} />
+          <div className="auth-kicker">Practice room setup</div>
+          <h1>
+            <TypewriterText text="Create your AIVA workspace." speed={38} />
           </h1>
-          <p className="auth-tagline">
-            Level up your career with AI-powered mock interviews and instant feedback.
+          <p>
+            Build a preparation profile, upload resume context later, and start focused AI interview sessions across technical and behavioral tracks.
           </p>
+          <AssistantScene className="auth-assistant" label="New interview workspace" />
         </div>
-      </div>
+      </section>
 
-      {/* Right Panel - Form */}
-      <div className="auth-form-panel">
-        <motion.div 
-          className="auth-container glass-panel"
-          initial={{ opacity: 0, y: 20 }}
+      <section className="auth-form-panel">
+        <motion.div
+          className="auth-container app-shell-panel"
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
         >
           <div className="auth-header">
-            <h2 className="auth-title">Create Account</h2>
-            <p className="auth-subtitle">Start your journey with intelligent mock interviews.</p>
+            <span className="eyebrow">Start practicing</span>
+            <h2 className="auth-title">Create account</h2>
+            <p className="auth-subtitle">Set up your interview workspace in a few seconds.</p>
           </div>
 
           <form className="auth-form" onSubmit={handleSubmit}>
@@ -96,9 +65,9 @@ export default function Signup() {
                 {error}
               </motion.div>
             )}
-            
+
             <div className="auth-field">
-              <label htmlFor="name">Full Name</label>
+              <label htmlFor="name"><UserRound size={16} /> Full Name</label>
               <input
                 id="name"
                 type="text"
@@ -111,7 +80,7 @@ export default function Signup() {
             </div>
 
             <div className="auth-field">
-              <label htmlFor="email">Email Address</label>
+              <label htmlFor="email"><Mail size={16} /> Email Address</label>
               <input
                 id="email"
                 type="email"
@@ -122,22 +91,22 @@ export default function Signup() {
                 autoComplete="email"
               />
             </div>
-            
+
             <div className="auth-field">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password"><LockKeyhole size={16} /> Password</label>
               <PasswordInput
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="At least 6 characters"
                 required
                 minLength={6}
                 autoComplete="new-password"
               />
             </div>
-            
+
             <button type="submit" className="btn-primary auth-btn" disabled={loading}>
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? 'Creating account...' : 'Create account'}
             </button>
           </form>
 
@@ -145,7 +114,7 @@ export default function Signup() {
             Already have an account? <Link to="/login" className="auth-link">Log in</Link>
           </div>
         </motion.div>
-      </div>
+      </section>
     </div>
   );
 }

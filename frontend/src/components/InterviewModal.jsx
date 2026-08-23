@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, FileText, AlertCircle, Clock, Hash, Play } from 'lucide-react';
+import { X, FileText, AlertCircle, Clock, Hash, Play, SlidersHorizontal } from 'lucide-react';
 import './InterviewModal.css';
 
 export default function InterviewModal({ interview, onClose, onStart, hasResume }) {
@@ -14,50 +14,47 @@ export default function InterviewModal({ interview, onClose, onStart, hasResume 
   };
 
   return (
-    <motion.div 
-      className="modal-overlay" 
+    <motion.div
+      className="modal-overlay interview-setup-overlay"
       onClick={onClose}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <motion.div 
-        className="modal-box glass-panel" 
+      <motion.div
+        className="modal-box app-shell-panel"
         onClick={(e) => e.stopPropagation()}
-        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        initial={{ scale: 0.96, opacity: 0, y: 18 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        transition={{ type: "spring", duration: 0.5 }}
+        transition={{ type: 'spring', duration: 0.5 }}
       >
         <button className="modal-close" onClick={onClose} aria-label="Close">
           <X size={20} />
         </button>
-        
+
         <div className="modal-header">
-          <h2 className="modal-title">Configure Session</h2>
-          <div className="modal-info">
-            <h3>{interview?.title}</h3>
-            <p className="modal-desc">{interview?.description}</p>
-          </div>
+          <span className="eyebrow"><SlidersHorizontal size={13} /> Session setup</span>
+          <h2 className="modal-title">{interview?.title}</h2>
+          <p className="modal-desc">{interview?.description}</p>
         </div>
 
-        {/* Resume personalization notice */}
         {hasResume ? (
           <div className="modal-resume-badge success">
             <FileText size={18} className="badge-icon" />
-            <span>Questions will be personalized based on your resume.</span>
+            <span>Questions will use your resume context when possible.</span>
           </div>
         ) : (
           <div className="modal-resume-badge warning">
             <AlertCircle size={18} className="badge-icon" />
-            <span>Upload your resume in Profile for personalized questions.</span>
+            <span>Upload your resume in Profile for more personalized questions.</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-row-group">
             <div className="modal-field">
-              <label><Clock size={16} /> Duration (Minutes)</label>
-              <select 
-                value={duration} 
+              <label><Clock size={16} /> Duration</label>
+              <select
+                value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
                 className="modal-select"
               >
@@ -66,11 +63,11 @@ export default function InterviewModal({ interview, onClose, onStart, hasResume 
                 ))}
               </select>
             </div>
-            
+
             <div className="modal-field">
-              <label><Hash size={16} /> Question Count</label>
-              <select 
-                value={questionCount} 
+              <label><Hash size={16} /> Questions</label>
+              <select
+                value={questionCount}
                 onChange={(e) => setQuestionCount(Number(e.target.value))}
                 className="modal-select"
               >
@@ -80,7 +77,7 @@ export default function InterviewModal({ interview, onClose, onStart, hasResume 
               </select>
             </div>
           </div>
-          
+
           <div className="modal-actions">
             <button type="button" onClick={onClose} className="btn-secondary">
               Cancel

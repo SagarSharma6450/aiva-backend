@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  LayoutDashboard, PlayCircle, History as HistoryIcon, 
-  TrendingUp, LogOut, User, Menu, X, ChevronRight, 
-  CheckCircle, BrainCircuit, Target, Shield, Layers, BarChart 
+import {
+  LayoutDashboard, PlayCircle, History as HistoryIcon,
+  TrendingUp, LogOut, User, Menu, X, ChevronRight,
+  BrainCircuit, Target, Shield, Layers,
+  Code2, MonitorCog, Database, Network, UsersRound, ClipboardCheck
 } from 'lucide-react';
 
 import { getMockInterviewTypes, startSession, getInterviewHistory } from '../api/interview';
@@ -12,15 +13,16 @@ import { getProfile } from '../api/profile';
 import { checkResumeStatus } from '../api/resume';
 import InterviewModal from '../components/InterviewModal';
 import TypewriterText from '../components/TypewriterText';
+import AssistantScene from '../components/AssistantScene';
 import './Dashboard.css';
 
-const INTERVIEW_ICONS = {
-  java: '☕',
-  python: '🐍',
-  frontend: '🎨',
-  'data-science': '📊',
-  'system-design': '🏗️',
-  behavioral: '🤝',
+const DOMAIN_META = {
+  java: { icon: <Code2 size={22} />, tone: 'teal', label: 'Backend fundamentals' },
+  python: { icon: <BrainCircuit size={22} />, tone: 'blue', label: 'Problem solving' },
+  frontend: { icon: <MonitorCog size={22} />, tone: 'amber', label: 'UI engineering' },
+  'data-science': { icon: <Database size={22} />, tone: 'violet', label: 'Data reasoning' },
+  'system-design': { icon: <Network size={22} />, tone: 'green', label: 'Architecture' },
+  behavioral: { icon: <UsersRound size={22} />, tone: 'rose', label: 'Communication' },
 };
 
 const NAV_ITEMS = [
@@ -31,19 +33,17 @@ const NAV_ITEMS = [
 ];
 
 const FEATURES = [
-  { icon: <BrainCircuit size={24} />, title: 'Real-Time AI Feedback', desc: 'Get instant, detailed evaluation on every answer — just like a real interviewer sitting across from you.' },
-  { icon: <Target size={24} />, title: 'Adaptive Questions', desc: 'Questions adapt to your domain and level — covering CS fundamentals and role-specific topics.' },
-  { icon: <TrendingUp size={24} />, title: 'Progress Tracking', desc: 'Every session is saved. Track scores over time and identify exactly what to study and improve next.' },
-  { icon: <Shield size={24} />, title: 'Fullscreen Test Mode', desc: 'Simulates a proctored environment with tab-switch detection — your practice feels like the real thing.' },
-  { icon: <Layers size={24} />, title: '6 Interview Domains', desc: 'Java, Python, Frontend, Data Science, System Design, and HR — full coverage across tech career paths.' },
-  { icon: <BarChart size={24} />, title: 'Detailed Score Report', desc: 'After every session — a full breakdown of strengths, weaknesses, study recommendations, and tips.' },
+  { icon: <BrainCircuit size={22} />, title: 'Live answer review', desc: 'AIVA evaluates clarity, relevance, structure, and confidence after each completed session.' },
+  { icon: <Target size={22} />, title: 'Role-aware practice', desc: 'Sessions are tuned by domain, question count, duration, and resume context when available.' },
+  { icon: <TrendingUp size={22} />, title: 'Progress memory', desc: 'Scores, attempts, and recent performance stay organized so improvement is easy to track.' },
+  { icon: <Shield size={22} />, title: 'Focused interview mode', desc: 'Fullscreen and tab-switch checks create a realistic practice environment.' },
 ];
 
 const HOW_IT_WORKS = [
-  { step: '01', title: 'Choose Domain', desc: 'Pick from 6 interview tracks tailored to your role.' },
-  { step: '02', title: 'Set Preferences', desc: 'Configure question count and session settings.' },
-  { step: '03', title: 'Answer Live', desc: 'The AI asks questions in a focused environment.' },
-  { step: '04', title: 'Get Report', desc: 'Receive a detailed score and improvement tips.' },
+  { step: '01', title: 'Select a track', desc: 'Choose the interview domain that matches the role.' },
+  { step: '02', title: 'Tune the session', desc: 'Set time and number of questions before starting.' },
+  { step: '03', title: 'Answer naturally', desc: 'Write clear responses in the focused interview room.' },
+  { step: '04', title: 'Review feedback', desc: 'Use the score report to decide what to practice next.' },
 ];
 
 export default function Dashboard() {
@@ -116,7 +116,7 @@ export default function Dashboard() {
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
+    if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
@@ -130,16 +130,21 @@ export default function Dashboard() {
   const firstInitial = userName ? userName.charAt(0).toUpperCase() : '?';
   const firstName = userName ? userName.split(' ')[0] : '';
   const breadcrumbLabel = { dashboard: 'Home', interviews: 'Mock Interviews', history: 'Session History' , progress: 'Progress'};
+  const recentSessions = history?.sessions?.slice(0, 3) || [];
 
   return (
     <div className="dashboard-layout">
-      {/* ── Sidebar (Glassmorphic) ── */}
-      <aside className={`sidebar glass-panel ${sidebarOpen ? 'open' : 'collapsed'}`}>
+      <aside className={`sidebar app-shell-panel ${sidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
           <div className="logo-badge">A</div>
-          {sidebarOpen && <h2>AIVA</h2>}
+          {sidebarOpen && (
+            <div>
+              <h2>AIVA</h2>
+              <span>Interview workspace</span>
+            </div>
+          )}
         </div>
-        
+
         <nav className="sidebar-nav">
           {NAV_ITEMS.map((item) => (
             <button
@@ -154,6 +159,11 @@ export default function Dashboard() {
           ))}
         </nav>
 
+        <button className="nav-collapse" onClick={() => setSidebarOpen((value) => !value)}>
+          <ChevronRight size={16} />
+          {sidebarOpen && <span>Collapse</span>}
+        </button>
+
         <div className="sidebar-footer">
           <button className="nav-item logout" onClick={handleLogout}>
             <LogOut size={20} />
@@ -162,14 +172,13 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* ── Mobile Menu Overlay ── */}
       {mobileMenuOpen && (
         <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
-          <div className="mobile-menu glass-panel" onClick={e => e.stopPropagation()}>
+          <div className="mobile-menu app-shell-panel" onClick={e => e.stopPropagation()}>
             <div className="mobile-menu-header">
               <div className="logo-badge">A</div>
               <h2>AIVA</h2>
-              <button onClick={() => setMobileMenuOpen(false)} className="close-btn"><X size={24} /></button>
+              <button onClick={() => setMobileMenuOpen(false)} className="close-btn"><X size={22} /></button>
             </div>
             <nav className="mobile-nav">
               {NAV_ITEMS.map((item) => (
@@ -187,24 +196,23 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Main Content Area ── */}
       <main className="dashboard-content">
-        <header className="dashboard-topbar glass-panel">
+        <header className="dashboard-topbar app-shell-panel">
           <div className="topbar-left">
             <button className="hamburger-btn" onClick={() => setMobileMenuOpen(true)}>
-              <Menu size={24} />
+              <Menu size={22} />
             </button>
             <span className="breadcrumb">AIVA <ChevronRight size={14} /> {breadcrumbLabel[activeView]}</span>
           </div>
-          
+
           <div className="topbar-right" ref={menuRef}>
             <span className="greeting">Hi, <strong>{firstName || 'there'}</strong></span>
             <button className="avatar-btn" onClick={() => setMenuOpen(!menuOpen)}>
               {firstInitial}
             </button>
-            
+
             {menuOpen && (
-              <div className="dropdown-menu glass-panel">
+              <div className="dropdown-menu app-shell-panel">
                 <div className="dropdown-header">
                   <strong>{userName || 'User'}</strong>
                   <span>{userEmail}</span>
@@ -221,113 +229,178 @@ export default function Dashboard() {
         </header>
 
         <div className="view-container">
-          {/* ══ HOME VIEW ══ */}
           {activeView === 'dashboard' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="dashboard-home">
-              
-              <div className="hero-section glass-panel">
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="dashboard-home">
+              <section className="hero-section">
                 <div className="hero-content">
-                  <span className="badge">AI-Powered Interviews</span>
-                  <h1>{firstName ? `Welcome back, ${firstName}.` : 'Ace Your Next Interview.'}</h1>
+                  <span className="eyebrow">AI interview practice</span>
+                  <h1>{firstName ? `Welcome back, ${firstName}.` : 'Practice interviews with a focused AI assistant.'}</h1>
                   <p className="subtitle">
-                    <TypewriterText text="Your personal AI interviewer. Get instant feedback, adaptive questions, and detailed score reports." delay={30} />
+                    <TypewriterText text="AIVA helps you rehearse technical and behavioral answers, then turns each session into clear feedback." speed={26} />
                   </p>
                   <div className="hero-actions">
-                    <button className="btn-primary" onClick={() => setActiveView('interviews')}>Start Practicing</button>
-                    <button className="btn-secondary" onClick={() => setActiveView('history')}>View History</button>
+                    <button className="btn-primary" onClick={() => setActiveView('interviews')}>Start practicing</button>
+                    <button className="btn-secondary" onClick={() => setActiveView('history')}>Review sessions</button>
                   </div>
                 </div>
-              </div>
+                <div className="hero-visual">
+                  <AssistantScene label="Virtual interviewer listening" />
+                </div>
+              </section>
 
-              <div className="how-it-works-grid">
-                {HOW_IT_WORKS.map((step, i) => (
-                  <div key={i} className="step-card glass-panel tilt-3d">
-                    <div className="step-number">{step.step}</div>
-                    <h3>{step.title}</h3>
-                    <p>{step.desc}</p>
-                  </div>
-                ))}
-              </div>
+              <section className="overview-strip">
+                <div className="overview-item">
+                  <span>{history?.totalInterviews ?? 0}</span>
+                  <p>Total sessions</p>
+                </div>
+                <div className="overview-item">
+                  <span>{history?.averageScore ?? '-'}</span>
+                  <p>Average score</p>
+                </div>
+                <div className="overview-item">
+                  <span>{hasResume ? 'On' : 'Off'}</span>
+                  <p>Resume context</p>
+                </div>
+                <div className="overview-item">
+                  <span>6</span>
+                  <p>Practice domains</p>
+                </div>
+              </section>
 
-              <div className="features-section">
-                <h2>Everything you need to prepare.</h2>
+              <section className="workflow-section">
+                <div className="section-heading">
+                  <span className="eyebrow">Workflow</span>
+                  <h2>Simple, structured preparation.</h2>
+                </div>
+                <div className="how-it-works-grid">
+                  {HOW_IT_WORKS.map((step) => (
+                    <div key={step.step} className="step-card">
+                      <div className="step-number">{step.step}</div>
+                      <h3>{step.title}</h3>
+                      <p>{step.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="features-section">
+                <div className="section-heading">
+                  <span className="eyebrow">Capabilities</span>
+                  <h2>Built for repeated practice, not showpiece screens.</h2>
+                </div>
                 <div className="features-grid">
-                  {FEATURES.map((feat, i) => (
-                    <div key={i} className="feature-card glass-panel tilt-3d">
+                  {FEATURES.map((feat) => (
+                    <div key={feat.title} className="feature-card">
                       <div className="feature-icon">{feat.icon}</div>
                       <h4>{feat.title}</h4>
                       <p>{feat.desc}</p>
                     </div>
                   ))}
                 </div>
-              </div>
+              </section>
+
+              {recentSessions.length > 0 && (
+                <section className="recent-panel">
+                  <div className="section-heading inline">
+                    <div>
+                      <span className="eyebrow">Recent work</span>
+                      <h2>Latest interview sessions</h2>
+                    </div>
+                    <button className="btn-secondary" onClick={() => setActiveView('history')}>View all</button>
+                  </div>
+                  <div className="mini-history">
+                    {recentSessions.map((s) => {
+                      const { cls, text } = getScoreLabel(s.score);
+                      return (
+                        <div key={s.sessionId} className="mini-history-row">
+                          <div>
+                            <strong>{s.role}</strong>
+                            <span>{formatDate(s.completedAt)}</span>
+                          </div>
+                          <span className={`history-badge ${cls}`}>{text}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
             </motion.div>
           )}
 
-          {/* ══ MOCK INTERVIEWS VIEW ══ */}
           {activeView === 'interviews' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="view-header">
-                <h2>Mock Interviews</h2>
-                <p>Choose a domain and start practicing with AI-generated questions.</p>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="view-header split-header">
+                <div>
+                  <span className="eyebrow">Practice catalog</span>
+                  <h2>Mock Interviews</h2>
+                  <p>Choose a focused track, configure the session, and begin in fullscreen mode.</p>
+                </div>
+                <button className="btn-secondary" onClick={() => navigate('/profile')}>
+                  <User size={16} /> Profile and resume
+                </button>
               </div>
-              
+
               {loading ? (
                 <div className="skeleton-grid">
-                  {[1,2,3,4,5,6].map(i => <div key={i} className="skeleton-card glass-panel" />)}
+                  {[1,2,3,4,5,6].map(i => <div key={i} className="skeleton-card" />)}
                 </div>
               ) : (
-                <div className="interview-grid">
-                  {interviewTypes.map((item) => (
-                    <div key={item.id} className="domain-card glass-panel tilt-3d">
-                      <div className="domain-header">
-                        <span className="domain-icon">{INTERVIEW_ICONS[item.id] || '💼'}</span>
-                        <span className="domain-badge">AI</span>
+                <div className="interview-catalog">
+                  {interviewTypes.map((item) => {
+                    const meta = DOMAIN_META[item.id] || { icon: <ClipboardCheck size={22} />, tone: 'teal', label: 'Interview practice' };
+                    return (
+                      <div key={item.id} className={`domain-row tone-${meta.tone}`}>
+                        <div className="domain-mark">{meta.icon}</div>
+                        <div className="domain-copy">
+                          <div className="domain-title-line">
+                            <h3>{item.title}</h3>
+                            <span>{meta.label}</span>
+                          </div>
+                          <p>{item.description}</p>
+                        </div>
+                        <button className="btn-primary start-btn" onClick={() => setModalInterview(item)}>
+                          Start Session <ChevronRight size={16} />
+                        </button>
                       </div>
-                      <h3>{item.title}</h3>
-                      <p>{item.description}</p>
-                      <button className="btn-primary start-btn" onClick={() => setModalInterview(item)}>
-                        Start Session <ChevronRight size={16} />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </motion.div>
           )}
 
-          {/* ══ PROGRESS VIEW ══ */}
           {activeView === 'progress' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
               <div className="view-header">
+                <span className="eyebrow">Performance</span>
                 <h2>Your Progress</h2>
-                <p>Track your performance and improvements over time.</p>
+                <p>Track your session volume, average score, and best result.</p>
               </div>
 
               {historyLoading ? (
                 <div className="loading-text">Loading stats...</div>
               ) : (
                 <div className="stats-grid">
-                  <div className="stat-card glass-panel tilt-3d">
+                  <div className="stat-card">
                     <div className="stat-icon purple"><Layers size={24} /></div>
                     <div className="stat-info">
                       <span className="stat-value">{history?.totalInterviews ?? 0}</span>
                       <span className="stat-label">Total Sessions</span>
                     </div>
                   </div>
-                  
-                  <div className="stat-card glass-panel tilt-3d">
+
+                  <div className="stat-card">
                     <div className="stat-icon blue"><TrendingUp size={24} /></div>
                     <div className="stat-info">
-                      <span className="stat-value">{history?.averageScore ?? '—'}<small>/10</small></span>
+                      <span className="stat-value">{history?.averageScore ?? '-'}<small>/10</small></span>
                       <span className="stat-label">Average Score</span>
                     </div>
                   </div>
 
-                  <div className="stat-card glass-panel tilt-3d">
+                  <div className="stat-card">
                     <div className="stat-icon gold"><Target size={24} /></div>
                     <div className="stat-info">
-                      <span className="stat-value">{history?.bestScore ?? '—'}<small>/10</small></span>
+                      <span className="stat-value">{history?.bestScore ?? '-'}<small>/10</small></span>
                       <span className="stat-label">Best Score</span>
                     </div>
                   </div>
@@ -336,38 +409,38 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {/* ══ HISTORY VIEW ══ */}
           {activeView === 'history' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
               <div className="view-header">
+                <span className="eyebrow">Archive</span>
                 <h2>Session History</h2>
                 <p>Review past performance and AI feedback.</p>
               </div>
 
               {historyLoading ? (
                 <div className="skeleton-grid">
-                  {[1,2,3].map(i => <div key={i} className="skeleton-row glass-panel" />)}
+                  {[1,2,3].map(i => <div key={i} className="skeleton-row" />)}
                 </div>
               ) : !history || history.sessions.length === 0 ? (
-                <div className="empty-state glass-panel">
-                  <HistoryIcon size={48} className="empty-icon" />
+                <div className="empty-state">
+                  <HistoryIcon size={44} className="empty-icon" />
                   <h3>No sessions yet</h3>
                   <p>Complete your first mock interview to see your history here.</p>
                   <button className="btn-primary" onClick={() => setActiveView('interviews')}>Start an Interview</button>
                 </div>
               ) : (
                 <div className="history-list">
-                  {history.sessions.map((s, i) => {
+                  {history.sessions.map((s) => {
                     const { cls, text } = getScoreLabel(s.score);
                     const scorePercent = (s.score / 10) * 100;
+                    const domainKey = Object.keys(DOMAIN_META).find(k => s.role.toLowerCase().includes(k.replace('-', ' ')));
+                    const meta = DOMAIN_META[domainKey] || { icon: <ClipboardCheck size={20} />, tone: 'teal' };
                     return (
-                      <div key={s.sessionId} className="history-row glass-panel tilt-3d">
-                        <div className="history-icon">
-                          {INTERVIEW_ICONS[Object.keys(INTERVIEW_ICONS).find(k => s.role.toLowerCase().includes(k.replace('-', ' ')))] || '💼'}
-                        </div>
+                      <div key={s.sessionId} className="history-row">
+                        <div className={`history-icon tone-${meta.tone}`}>{meta.icon}</div>
                         <div className="history-details">
                           <h4>{s.role}</h4>
-                          <span>{s.questionCount} questions • {formatDate(s.completedAt)}</span>
+                          <span>{s.questionCount} questions - {formatDate(s.completedAt)}</span>
                         </div>
                         <div className="history-score-bar">
                           <div className="bar-track">
