@@ -18,7 +18,7 @@ public class groqService {
     @Value("${groq.api.key}")
     private String apiKey;
 
-    @Value("${groq.model:llama-3.1-8b-instant}")
+    @Value("${groq.model:GPT OSS 20B}")
     private String model;
 
     private final RestTemplate restTemplate = new RestTemplate();
