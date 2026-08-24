@@ -221,7 +221,10 @@ export default function Interview() {
           });
         }
       })
-      .catch(() => navigate('/dashboard'))
+     .catch((err) => {
+    console.error('Interview initialization failed:', err);
+    alert(err.message || 'Failed to load interview');
+})
       .finally(() => setLoading(false));
 
     return () => {
