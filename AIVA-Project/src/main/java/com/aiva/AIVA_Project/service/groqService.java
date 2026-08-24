@@ -18,7 +18,7 @@ public class groqService {
     @Value("${groq.api.key}")
     private String apiKey;
 
-    @Value("${groq.model:GPT OSS 20B}")
+    @Value("${groq.model:openai/gpt-oss-20b}")
     private String model;
 
     private final RestTemplate restTemplate = new RestTemplate();
