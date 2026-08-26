@@ -44,4 +44,11 @@ public class user {
     private String designation;     // e.g. "Software Engineer" - for working professionals
 
     private LocalDateTime createdAt;
+    
+    private Long organizationId; // null for candidates not tied to an org
+
+    // Candidate education fields (replace/extend profession+designation usage)
+    private String highestQualification; // e.g. B.Tech, M.Sc
+    private String institution;
+    private Integer graduationYear;
 }

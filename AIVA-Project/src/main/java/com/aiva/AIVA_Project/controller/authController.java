@@ -2,14 +2,11 @@ package com.aiva.AIVA_Project.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.aiva.AIVA_Project.dto.loginRequest;
+import com.aiva.AIVA_Project.dto.loginResponse;
+import com.aiva.AIVA_Project.dto.orgSignupRequest;
 import com.aiva.AIVA_Project.dto.signupRequest;
 import com.aiva.AIVA_Project.entity.user;
 import com.aiva.AIVA_Project.repository.userRepository;
@@ -40,14 +37,19 @@ public class authController {
     public String test() {
         return "Protected API working";
     }
-    
+
     @PostMapping("/signup")
     public String signup(@Valid @RequestBody signupRequest request) {
         return authService.signup(request);
     }
 
+    @PostMapping("/org/signup")
+    public String orgSignup(@Valid @RequestBody orgSignupRequest request) {
+        return authService.signupOrgAdmin(request);
+    }
+
     @PostMapping("/login")
-    public String login(@Valid @RequestBody loginRequest request) {
+    public loginResponse login(@Valid @RequestBody loginRequest request) {
         user user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -55,7 +57,12 @@ public class authController {
             throw new RuntimeException("Invalid password");
         }
 
-        String token = jwtUtil.generateToken(user.getEmail());
-        return token;
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole(), user.getOrganizationId());
+
+        return loginResponse.builder()
+                .token(token)
+                .role(user.getRole())
+                .name(user.getName())
+                .build();
     }
 }

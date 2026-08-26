@@ -26,14 +26,16 @@ public class jwtFilter extends OncePerRequestFilter {
                                      FilterChain chain)
             throws IOException, ServletException {
 
-        String authHeader = request.getHeader("Authorization");
+                String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             if (jwtUtil.validateToken(token)) {
                 String email = jwtUtil.extractEmail(token);
+                String role = jwtUtil.extractRole(token);
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        email, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+                        email, null,
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         }
@@ -41,4 +43,3 @@ public class jwtFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 }
-

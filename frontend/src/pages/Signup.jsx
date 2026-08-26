@@ -15,6 +15,10 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [highestQualification, setHighestQualification] = useState('');
+  const [institution, setInstitution] = useState('');
+  const [graduationYear, setGraduationYear] = useState('');
+
 
   // YOUR EXACT LOGIC - UNTOUCHED
   const handleSubmit = async (e) => {
@@ -22,7 +26,7 @@ export default function Signup() {
     setError('');
     setLoading(true);
     try {
-      await signup(name, email, password);
+      await signup(name, email, password, highestQualification, institution, Number(graduationYear) || null);
       navigate('/login');
     } catch (err) {
       setError(err.message || 'Signup failed');

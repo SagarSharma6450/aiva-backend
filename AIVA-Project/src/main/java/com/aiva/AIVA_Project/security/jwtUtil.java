@@ -20,14 +20,25 @@ public class jwtUtil {
         return Keys.hmacShaKeyFor(SECRET.getBytes());
     }
 
-    public String generateToken(String email) {
-
+      public String generateToken(String email, String role, Long organizationId) {
         return Jwts.builder()
                 .setSubject(email)
+                .claim("role", role)
+                .claim("orgId", organizationId)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
                 .signWith(getSignKey(), SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public String extractRole(String token) {
+        return Jwts.parserBuilder().setSigningKey(getSignKey()).build()
+                .parseClaimsJws(token).getBody().get("role", String.class);
+    }
+
+    public Long extractOrgId(String token) {
+        return Jwts.parserBuilder().setSigningKey(getSignKey()).build()
+                .parseClaimsJws(token).getBody().get("orgId", Long.class);
     }
 
     public String extractEmail(String token) {

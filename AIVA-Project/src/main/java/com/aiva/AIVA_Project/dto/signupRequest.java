@@ -19,4 +19,10 @@ public class signupRequest {
 
     @NotBlank(message = "Password is required")
     private String password;
+
+    private String highestQualification;
+
+    private String institution;
+
+    private Integer graduationYear;
 }

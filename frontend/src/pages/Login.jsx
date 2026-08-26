@@ -16,20 +16,26 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   // YOUR EXACT LOGIC - UNTOUCHED
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const token = await login(email, password);
-      localStorage.setItem('token', token);
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  setLoading(true);
+  try {
+    const data = await login(email, password); // { token, role, name }
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('role', data.role);
+    localStorage.setItem('userName', data.name);
+    if (data.role === 'ORG_ADMIN' || data.role === 'SUPER_ADMIN') {
+      navigate('/admin');
+    } else {
+      navigate('/tests');
     }
-  };
+  } catch (err) {
+    setError(err.message || 'Login failed');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="auth-page">
@@ -95,7 +101,11 @@ export default function Login() {
               {loading ? 'Authenticating...' : 'Log in to workspace'}
             </button>
           </form>
-
+<div className="auth-switch">
+  Don't have an account? <Link to="/signup" className="auth-link">Create one</Link>
+  <br />
+  Hiring? <Link to="/org/signup" className="auth-link">Register your company</Link>
+</div>
           <div className="auth-switch">
             Don't have an account? <Link to="/signup" className="auth-link">Create one</Link>
           </div>

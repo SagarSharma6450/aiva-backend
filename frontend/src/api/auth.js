@@ -10,11 +10,11 @@ async function getErrorMessage(res) {
   }
 }
 
-export async function signup(name, email, password) {
+export async function signup(name, email, password, highestQualification, institution, graduationYear) {
   const res = await fetch(`${API_BASE}/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ name, email, password, highestQualification, institution, graduationYear }),
   });
   if (!res.ok) throw new Error(await getErrorMessage(res));
   return res.text();
@@ -27,5 +27,15 @@ export async function login(email, password) {
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) throw new Error(await getErrorMessage(res));
-  return res.text(); // JWT token
+  return res.json(); // { token, role, name }
+}
+
+export async function orgSignup(organizationName, adminName, adminEmail, password) {
+  const res = await fetch(`${API_BASE}/org/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ organizationName, adminName, adminEmail, password }),
+  });
+  if (!res.ok) throw new Error(await getErrorMessage(res));
+  return res.text();
 }
