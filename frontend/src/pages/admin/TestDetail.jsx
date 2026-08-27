@@ -53,16 +53,24 @@ export default function TestDetail() {
 
   const isSlotExpired = (s) => new Date(s.endTime) < new Date();
 
-  const saveTestEdit = async () => {
-    await updateTest(testId, editForm);
-    setEditingTest(false);
-    loadTest();
+ const saveTestEdit = async () => {
+    try {
+      await updateTest(testId, editForm);
+      setEditingTest(false);
+      loadTest();
+    } catch (e) {
+      alert(e.message || 'Failed to save test details');
+    }
   };
 
   const addManualQuestion = async () => {
     if (!manual.questionText.trim() || !manual.optionA.trim() || !manual.optionB.trim()) return;
-    await addQuestions(testId, [manual]);
-    setManual({ questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', maxMarks: 10 });
+    try {
+      await addQuestions(testId, [manual]);
+      setManual({ questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', maxMarks: 10 });
+    } catch (e) {
+      alert(e.message || 'Failed to add question');
+    }
   };
 
   const draftWithAi = async () => {
@@ -70,24 +78,34 @@ export default function TestDetail() {
     try {
       const result = await draftQuestionsWithAi(testId, { roleCategory: aiRole, topics: aiTopics, count: aiCount });
       setDrafted(result);
+    } catch (e) {
+      alert(e.message || 'Failed to generate AI draft');
     } finally {
       setDrafting(false);
     }
   };
 
   const saveDrafted = async () => {
-    await addQuestions(testId, drafted);
-    setDrafted([]);
+    try {
+      await addQuestions(testId, drafted);
+      setDrafted([]);
+    } catch (e) {
+      alert(e.message || 'Failed to save drafted questions');
+    }
   };
 
   const saveSlot = async () => {
     if (!slotForm.startTime || !slotForm.endTime) return;
     const payload = { startTime: toIso(slotForm.startTime), endTime: toIso(slotForm.endTime) };
-    if (editingSlotId) await updateSlot(testId, editingSlotId, payload);
-    else await createSlot(testId, payload);
-    setSlotForm({ startTime: '', endTime: '' });
-    setEditingSlotId(null);
-    loadSlots();
+    try {
+      if (editingSlotId) await updateSlot(testId, editingSlotId, payload);
+      else await createSlot(testId, payload);
+      setSlotForm({ startTime: '', endTime: '' });
+      setEditingSlotId(null);
+      loadSlots();
+    } catch (e) {
+      alert(e.message || 'Failed to save slot');
+    }
   };
 
   const editSlot = (s) => {
@@ -97,16 +115,24 @@ export default function TestDetail() {
 
   const removeSlot = async (slotId) => {
     if (!window.confirm('Delete this slot? Candidates invited to it will lose access to this test.')) return;
-    await deleteSlot(testId, slotId);
-    loadSlots();
+    try {
+      await deleteSlot(testId, slotId);
+      await loadSlots();
+    } catch (e) {
+      alert(e.message || 'Failed to delete slot. Please try again.');
+    }
   };
 
-  const sendInvites = async () => {
+   const sendInvites = async () => {
     if (!selectedSlot || !emailsText.trim()) return;
     const emails = emailsText.split(/[\n,]/).map((e) => e.trim()).filter(Boolean);
-    await inviteCandidates(testId, selectedSlot, emails);
-    setEmailsText('');
-    listInvitations(testId).then(setInvitations);
+    try {
+      await inviteCandidates(testId, selectedSlot, emails);
+      setEmailsText('');
+      listInvitations(testId).then(setInvitations);
+    } catch (e) {
+      alert(e.message || 'Failed to send invitations');
+    }
   };
 
   if (!test) return <p style={{ padding: 24 }}>Loading...</p>;

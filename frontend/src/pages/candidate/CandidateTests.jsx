@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LogOut, PlayCircle, Clock, CheckCircle2, Ban, CalendarClock } from 'lucide-react';
@@ -6,30 +6,61 @@ import { getAssignedTests } from '../../api/candidateTests';
 import AssistantScene from '../../components/AssistantScene';
 import '../Dashboard.css';
 
-const STATUS_META = {
-  INVITED: { label: 'Available Now', cls: 'score-mid', icon: PlayCircle },
-  STARTED: { label: 'In Progress', cls: 'score-avg', icon: Clock },
-  COMPLETED: { label: 'Completed', cls: 'score-high', icon: CheckCircle2 },
-  EXPIRED: { label: 'Expired', cls: 'score-low', icon: Ban },
+const STATE_META = {
+  open: { label: 'Enter Assessment', badge: 'score-mid', icon: PlayCircle },
+  upcoming: { label: 'Not Yet Open', badge: 'score-avg', icon: Clock },
+  completed: { label: 'Completed', badge: 'score-high', icon: CheckCircle2 },
+  expired: { label: 'Expired', badge: 'score-low', icon: Ban },
 };
+
+function getWindowState(t, now) {
+  if (t.status === 'COMPLETED') return 'completed';
+  const start = new Date(t.slotStart);
+  const end = new Date(t.slotEnd);
+  if (t.status === 'EXPIRED' || now > end) return 'expired';
+  if (now < start) return 'upcoming';
+  return 'open'; // now is within [start, end] — candidate may enter any time in this range
+}
 
 export default function CandidateTests() {
   const navigate = useNavigate();
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(new Date());
   const [userName] = useState(localStorage.getItem('userName') || '');
+
+  const refresh = useCallback(() => {
+    getAssignedTests().then(setTests).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!localStorage.getItem('token')) { navigate('/login'); return; }
-    getAssignedTests().then(setTests).catch(() => setTests([])).finally(() => setLoading(false));
-  }, [navigate]);
+    refresh();
+    setLoading(false);
+  }, [navigate, refresh]);
+
+  // tick every second so a card flips from "Not Yet Open" to "Enter Assessment"
+  // (or to "Expired") live, without the candidate needing to refresh the page
+  useEffect(() => {
+    const clockTimer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(clockTimer);
+  }, []);
+
+  // also re-fetch from the backend periodically / on tab focus, so server-driven
+  // changes (admin deleted a slot, another device completed the test, etc.) show up
+  useEffect(() => {
+    const pollTimer = setInterval(refresh, 20000);
+    const onFocus = () => refresh();
+    window.addEventListener('focus', onFocus);
+    return () => { clearInterval(pollTimer); window.removeEventListener('focus', onFocus); };
+  }, [refresh]);
 
   const logout = () => { localStorage.clear(); navigate('/login'); };
 
-  const isUpcoming = (t) => t.status === 'INVITED' && new Date(t.slotStart) > new Date();
-  const available = tests.filter((t) => (t.status === 'INVITED' && !isUpcoming(t)) || t.status === 'STARTED').length;
-  const completed = tests.filter((t) => t.status === 'COMPLETED').length;
-  const expired = tests.filter((t) => t.status === 'EXPIRED').length;
+  const states = tests.map((t) => getWindowState(t, now));
+  const available = states.filter((s) => s === 'open').length;
+  const completed = states.filter((s) => s === 'completed').length;
+  const expired = states.filter((s) => s === 'expired').length;
 
   return (
     <div className="dashboard-content" style={{ padding: 24, maxWidth: 1180, margin: '0 auto' }}>
@@ -73,17 +104,17 @@ export default function CandidateTests() {
         </div>
       ) : (
         <div className="interview-catalog">
-          {tests.map((t) => {
-            const meta = STATUS_META[t.status] || STATUS_META.INVITED;
+          {tests.map((t, i) => {
+            const state = states[i];
+            const meta = STATE_META[state];
             const StatusIcon = meta.icon;
-            const upcoming = isUpcoming(t);
             return (
               <motion.div key={`${t.testId}-${t.slotId}`} className="domain-row" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="domain-mark"><StatusIcon size={22} /></div>
                 <div className="domain-copy">
                   <div className="domain-title-line">
                     <h3>{t.title}</h3>
-                    <span className={`history-badge ${upcoming ? 'score-avg' : meta.cls}`}>{upcoming ? 'Upcoming' : meta.label}</span>
+                    <span className={`history-badge ${meta.badge}`}>{meta.label}</span>
                   </div>
                   <p>{t.roleCategory} · {t.durationMinutes} min · {t.questionCount} MCQ questions</p>
                   <p style={{ fontSize: 12, marginTop: 4 }}>
@@ -92,10 +123,10 @@ export default function CandidateTests() {
                 </div>
                 <button
                   className="btn-primary start-btn"
-                  disabled={t.status === 'COMPLETED' || t.status === 'EXPIRED' || upcoming}
+                  disabled={state !== 'open'}
                   onClick={() => navigate(`/tests/${t.testId}/instructions`)}
                 >
-                  {t.status === 'COMPLETED' ? 'Completed' : t.status === 'EXPIRED' ? 'Expired' : upcoming ? 'Not Yet Open' : 'Start'}
+                  {meta.label}
                 </button>
               </motion.div>
             );

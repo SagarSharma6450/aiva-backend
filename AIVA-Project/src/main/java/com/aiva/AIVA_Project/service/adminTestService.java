@@ -6,6 +6,7 @@ import com.aiva.AIVA_Project.repository.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -156,9 +157,12 @@ public class adminTestService {
         return slotRepository.save(slot);
     }
 
+        @Transactional
     public void deleteSlot(Long slotId) {
         invitationRepository.deleteBySlotId(slotId);
-        slotRepository.deleteById(slotId);
+        if (slotRepository.existsById(slotId)) {
+            slotRepository.deleteById(slotId);
+        }
     }
 
     public List<testSlot> listSlots(Long testId) {
