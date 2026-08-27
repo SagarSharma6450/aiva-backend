@@ -97,7 +97,7 @@ public class candidateTestService {
             var slotOpt = slotRepository.findById(inv.getSlotId());
             if (slotOpt.isEmpty()) continue; // slot was deleted
             var slot = slotOpt.get();
-            if (!now.isBefore(slot.getStartTime()) && !now.isAfter(slot.getEndTime())) {
+            if (!now.isAfter(slot.getEndTime())) {
                 chosen = inv;
                 chosenSlot = slot;
                 break;
