@@ -6,10 +6,21 @@ function authHeader() {
 async function handle(res) {
   const text = await res.text();
   if (!res.ok) {
-    try { const j = JSON.parse(text); throw new Error(j.message || j.error || text); }
-    catch (e) { throw e instanceof Error ? e : new Error(text || 'Request failed'); }
+    let message = text || `Request failed (${res.status})`;
+    try {
+      const j = JSON.parse(text);
+      message = j.message || j.error || message;
+    } catch {
+      // response wasn't JSON — keep the raw text/status as the message
+    }
+    throw new Error(message);
   }
-  return text ? JSON.parse(text) : null;
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 export async function createTest(payload) {
@@ -74,5 +85,33 @@ export async function listSubmissions(testId) {
 
 export async function getSubmissionDetail(submissionId) {
   const res = await fetch(`${BASE}/admin/reports/submissions/${submissionId}`, { headers: authHeader() });
+  return handle(res);
+}
+
+export async function getTest(testId) {
+  const res = await fetch(`${BASE}/admin/tests/${testId}`, { headers: authHeader() });
+  return handle(res);
+}
+
+export async function updateTest(testId, payload) {
+  const res = await fetch(`${BASE}/admin/tests/${testId}`, {
+    method: 'PUT', headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return handle(res);
+}
+
+export async function updateSlot(testId, slotId, payload) {
+  const res = await fetch(`${BASE}/admin/tests/${testId}/slots/${slotId}`, {
+    method: 'PUT', headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return handle(res);
+}
+
+export async function deleteSlot(testId, slotId) {
+  const res = await fetch(`${BASE}/admin/tests/${testId}/slots/${slotId}`, {
+    method: 'DELETE', headers: authHeader(),
+  });
   return handle(res);
 }

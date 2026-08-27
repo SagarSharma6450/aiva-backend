@@ -2,6 +2,7 @@ package com.aiva.AIVA_Project.service;
 
 import com.aiva.AIVA_Project.dto.submissionDetail;
 import com.aiva.AIVA_Project.dto.submissionSummary;
+import com.aiva.AIVA_Project.entity.submissionAnswer;
 import com.aiva.AIVA_Project.entity.testQuestion;
 import com.aiva.AIVA_Project.entity.testSubmission;
 import com.aiva.AIVA_Project.entity.user;
@@ -47,10 +48,15 @@ public class adminReportService {
             var ans = answers.stream().filter(a -> a.getQuestionId().equals(q.getId())).findFirst();
             return submissionDetail.answerDetail.builder()
                     .questionText(q.getQuestionText())
-                    .candidateAnswer(ans.map(a -> a.getCandidateAnswer()).orElse(""))
+                    .optionA(q.getOptionA())
+                    .optionB(q.getOptionB())
+                    .optionC(q.getOptionC())
+                    .optionD(q.getOptionD())
+                    .selectedOption(ans.map(submissionAnswer::getSelectedOption).orElse(null))
+                    .correctOption(q.getCorrectOption())
+                    .isCorrect(ans.map(a -> Boolean.TRUE.equals(a.getIsCorrect())).orElse(false))
                     .maxMarks(q.getMaxMarks())
-                    .aiScore(ans.map(a -> a.getAiScore()).orElse(0.0))
-                    .aiFeedback(ans.map(a -> a.getAiFeedback()).orElse(""))
+                    .aiScore(ans.map(a -> a.getAiScore() == null ? 0.0 : a.getAiScore()).orElse(0.0))
                     .build();
         }).collect(Collectors.toList());
 

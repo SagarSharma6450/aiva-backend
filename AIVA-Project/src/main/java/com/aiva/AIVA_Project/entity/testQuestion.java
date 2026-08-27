@@ -16,6 +16,12 @@ public class testQuestion {
     @Column(length = 2000)
     private String questionText;
 
+    private String optionA;
+    private String optionB;
+    private String optionC;
+    private String optionD;
+    private String correctOption; // "A", "B", "C", or "D"
+
     private Double maxMarks;
     private Integer orderIndex;
 }

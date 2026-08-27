@@ -6,7 +6,11 @@ import lombok.*;
 public class candidateQuestionView {
     private Long questionId;
     private String questionText;
-    private Integer currentIndex; // 1-based
+    private String optionA;
+    private String optionB;
+    private String optionC;
+    private String optionD;
+    private Integer currentIndex;
     private Integer totalQuestions;
-    private String savedAnswer; // if candidate returns to a saved answer
+    private String savedSelectedOption;
 }

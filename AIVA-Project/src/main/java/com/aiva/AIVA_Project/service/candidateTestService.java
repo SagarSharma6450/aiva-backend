@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,7 +20,6 @@ public class candidateTestService {
     private final testSubmissionRepository submissionRepository;
     private final submissionAnswerRepository answerRepository;
     private final userRepository userRepository;
-    private final assessmentGradingService gradingService;
 
     public candidateTestService(testInvitationRepository invitationRepository,
                                  assessmentTestRepository testRepository,
@@ -27,8 +27,7 @@ public class candidateTestService {
                                  testQuestionRepository questionRepository,
                                  testSubmissionRepository submissionRepository,
                                  submissionAnswerRepository answerRepository,
-                                 userRepository userRepository,
-                                 assessmentGradingService gradingService) {
+                                 userRepository userRepository) {
         this.invitationRepository = invitationRepository;
         this.testRepository = testRepository;
         this.slotRepository = slotRepository;
@@ -36,26 +35,34 @@ public class candidateTestService {
         this.submissionRepository = submissionRepository;
         this.answerRepository = answerRepository;
         this.userRepository = userRepository;
-        this.gradingService = gradingService;
     }
 
     public List<candidateTestSummary> getAssignedTests(String email) {
         List<testInvitation> invitations = invitationRepository.findByCandidateEmail(email.toLowerCase());
+        LocalDateTime now = LocalDateTime.now();
+
         return invitations.stream().map(inv -> {
-            var test = testRepository.findById(inv.getTestId()).orElseThrow();
-            var slot = slotRepository.findById(inv.getSlotId()).orElseThrow();
+            var test = testRepository.findById(inv.getTestId()).orElse(null);
+            var slot = slotRepository.findById(inv.getSlotId()).orElse(null);
+            if (test == null || slot == null) return null; // slot/test was deleted by admin
+
+            String effectiveStatus = inv.getStatus();
+            if (!"COMPLETED".equals(effectiveStatus) && now.isAfter(slot.getEndTime())) {
+                effectiveStatus = "EXPIRED";
+            }
+
             return candidateTestSummary.builder()
                     .testId(test.getId())
                     .title(test.getTitle())
                     .roleCategory(test.getRoleCategory())
                     .durationMinutes(test.getDurationMinutes())
                     .questionCount(test.getQuestionCount())
-                    .status(inv.getStatus())
+                    .status(effectiveStatus)
                     .slotId(slot.getId())
                     .slotStart(slot.getStartTime())
                     .slotEnd(slot.getEndTime())
                     .build();
-        }).collect(Collectors.toList());
+        }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     public testInstructionsResponse getInstructions(Long testId) {
@@ -74,38 +81,65 @@ public class candidateTestService {
 
     public startSubmissionResponse startTest(Long testId, String email) {
         var user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
-        var invitation = invitationRepository.findByTestIdAndCandidateEmail(testId, email.toLowerCase())
-                .orElseThrow(() -> new RuntimeException("You are not invited to this test"));
-        var test = testRepository.findById(testId).orElseThrow(() -> new RuntimeException("Test not found"));
-        var slot = slotRepository.findById(invitation.getSlotId()).orElseThrow();
+
+        List<testInvitation> invitations = invitationRepository
+                .findByTestIdAndCandidateEmailOrderByInvitedAtDesc(testId, email.toLowerCase());
+        if (invitations.isEmpty()) {
+            throw new RuntimeException("You are not invited to this test");
+        }
 
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(slot.getStartTime()) || now.isAfter(slot.getEndTime())) {
-            throw new RuntimeException("This test is not currently available. Slot: "
-                    + slot.getStartTime() + " to " + slot.getEndTime());
+
+        testInvitation chosen = null;
+        testSlot chosenSlot = null;
+        for (testInvitation inv : invitations) {
+            if ("COMPLETED".equals(inv.getStatus())) continue;
+            var slotOpt = slotRepository.findById(inv.getSlotId());
+            if (slotOpt.isEmpty()) continue; // slot was deleted
+            var slot = slotOpt.get();
+            if (!now.isBefore(slot.getStartTime()) && !now.isAfter(slot.getEndTime())) {
+                chosen = inv;
+                chosenSlot = slot;
+                break;
+            }
         }
 
-        var existing = submissionRepository.findByTestIdAndCandidateId(testId, user.getId());
-        if (existing.isPresent() && "COMPLETED".equals(existing.get().getStatus())) {
-            throw new RuntimeException("You have already completed this test");
+        if (chosen == null) {
+            boolean alreadyCompleted = invitations.stream().anyMatch(i -> "COMPLETED".equals(i.getStatus()));
+            if (alreadyCompleted) {
+                throw new RuntimeException("You have already completed this test");
+            }
+            throw new RuntimeException("This test is not currently available. Please check your assigned time slot.");
         }
 
-        testSubmission submission = existing.orElseGet(() -> testSubmission.builder()
-                .testId(testId)
-                .candidateId(user.getId())
-                .slotId(slot.getId())
-                .startedAt(now)
-                .tabSwitchCount(0)
-                .fullscreenExitCount(0)
-                .status("IN_PROGRESS")
-                .build());
+        List<testSubmission> existingSubs = submissionRepository
+                .findByTestIdAndCandidateIdOrderByStartedAtDesc(testId, user.getId());
+       testSubmission submission = existingSubs.stream()
+        .filter(s -> "IN_PROGRESS".equals(s.getStatus()))
+        .findFirst()
+        .orElse(null);
+
+if (submission == null) {
+    submission = testSubmission.builder()
+            .testId(testId)
+            .candidateId(user.getId())
+            .slotId(chosenSlot.getId())
+            .startedAt(now)
+            .tabSwitchCount(0)
+            .fullscreenExitCount(0)
+            .status("IN_PROGRESS")
+            .build();
+}
 
         submission = submissionRepository.save(submission);
 
-        invitation.setStatus("STARTED");
-        invitationRepository.save(invitation);
+        chosen.setStatus("STARTED");
+        invitationRepository.save(chosen);
 
         List<testQuestion> questions = questionRepository.findByTestIdOrderByOrderIndexAsc(testId);
+        if (questions.isEmpty()) {
+            throw new RuntimeException("This test has no questions configured yet. Contact the hiring team.");
+        }
         var first = questions.get(0);
 
         return startSubmissionResponse.builder()
@@ -126,26 +160,33 @@ public class candidateTestService {
         return candidateQuestionView.builder()
                 .questionId(q.getId())
                 .questionText(q.getQuestionText())
+                .optionA(q.getOptionA())
+                .optionB(q.getOptionB())
+                .optionC(q.getOptionC())
+                .optionD(q.getOptionD())
                 .currentIndex(index + 1)
                 .totalQuestions(questions.size())
-                .savedAnswer(saved.map(submissionAnswer::getCandidateAnswer).orElse(null))
+                .savedSelectedOption(saved.map(submissionAnswer::getSelectedOption).orElse(null))
                 .build();
     }
 
-    public ackResponse submitAnswer(Long submissionId, Long questionId, String answerText) {
+    public ackResponse submitAnswer(Long submissionId, Long questionId, String selectedOption) {
         var question = questionRepository.findById(questionId).orElseThrow();
         var existing = answerRepository.findBySubmissionIdAndQuestionId(submissionId, questionId);
 
-        var grade = gradingService.gradeAnswer(question.getQuestionText(), answerText, question.getMaxMarks());
+        boolean correct = question.getCorrectOption() != null && selectedOption != null
+                && question.getCorrectOption().trim().equalsIgnoreCase(selectedOption.trim());
+        double score = correct ? (question.getMaxMarks() == null ? 0 : question.getMaxMarks()) : 0;
 
         submissionAnswer answer = existing.orElseGet(() -> submissionAnswer.builder()
                 .submissionId(submissionId)
                 .questionId(questionId)
                 .maxMarks(question.getMaxMarks())
                 .build());
-        answer.setCandidateAnswer(answerText);
-        answer.setAiScore(grade.score);
-        answer.setAiFeedback(grade.feedback);
+        answer.setSelectedOption(selectedOption);
+        answer.setIsCorrect(correct);
+        answer.setAiScore(score);
+        answer.setAiFeedback(correct ? "Correct" : ("Incorrect. Correct answer: " + question.getCorrectOption()));
         answerRepository.save(answer);
 
         var submission = submissionRepository.findById(submissionId).orElseThrow();
@@ -156,7 +197,7 @@ public class candidateTestService {
         return ackResponse.builder()
                 .saved(true)
                 .hasNext(hasNext)
-                .nextIndex(hasNext ? currentOrder + 2 : null) // 1-based next index
+                .nextIndex(hasNext ? currentOrder + 2 : null)
                 .build();
     }
 
@@ -197,13 +238,15 @@ public class candidateTestService {
         submission.setMaxPossibleScore(max);
         submissionRepository.save(submission);
 
-        var invitation = invitationRepository.findByTestIdAndCandidateEmail(
-                submission.getTestId(),
-                userRepository.findById(submission.getCandidateId()).orElseThrow().getEmail()
-        );
-        invitation.ifPresent(inv -> {
-            inv.setStatus("COMPLETED");
-            invitationRepository.save(inv);
-        });
+        var candidate = userRepository.findById(submission.getCandidateId()).orElseThrow();
+        List<testInvitation> invitations = invitationRepository
+                .findByTestIdAndCandidateEmailOrderByInvitedAtDesc(submission.getTestId(), candidate.getEmail());
+        invitations.stream()
+                .filter(i -> i.getSlotId().equals(submission.getSlotId()))
+                .findFirst()
+                .ifPresent(inv -> {
+                    inv.setStatus("COMPLETED");
+                    invitationRepository.save(inv);
+                });
     }
 }

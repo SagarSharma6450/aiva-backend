@@ -36,6 +36,16 @@ public class adminTestController {
         return adminTestService.listTests(authContext.getOrgId(request));
     }
 
+    @GetMapping("/{testId}")
+    public assessmentTest getTest(@PathVariable Long testId) {
+        return adminTestService.getTest(testId);
+    }
+
+    @PutMapping("/{testId}")
+    public assessmentTest updateTest(@PathVariable Long testId, @RequestBody createTestRequest req) {
+        return adminTestService.updateTest(testId, req);
+    }
+
     @PostMapping("/{testId}/questions")
     public List<testQuestion> addQuestions(@PathVariable Long testId, @RequestBody List<questionInput> questions) {
         return adminTestService.addQuestions(testId, questions);
@@ -49,6 +59,16 @@ public class adminTestController {
     @PostMapping("/{testId}/slots")
     public testSlot createSlot(@PathVariable Long testId, @RequestBody slotRequest req) {
         return adminTestService.createSlot(testId, req);
+    }
+
+    @PutMapping("/{testId}/slots/{slotId}")
+    public testSlot updateSlot(@PathVariable Long testId, @PathVariable Long slotId, @RequestBody slotRequest req) {
+        return adminTestService.updateSlot(slotId, req);
+    }
+
+    @DeleteMapping("/{testId}/slots/{slotId}")
+    public void deleteSlot(@PathVariable Long testId, @PathVariable Long slotId) {
+        adminTestService.deleteSlot(slotId);
     }
 
     @GetMapping("/{testId}/slots")

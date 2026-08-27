@@ -11,9 +11,14 @@ public class submissionDetail {
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class answerDetail {
         private String questionText;
-        private String candidateAnswer;
+        private String optionA;
+        private String optionB;
+        private String optionC;
+        private String optionD;
+        private String selectedOption;
+        private String correctOption;
+        private Boolean isCorrect;
         private Double maxMarks;
         private Double aiScore;
-        private String aiFeedback;
     }
 }

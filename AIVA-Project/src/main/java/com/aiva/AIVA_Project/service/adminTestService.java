@@ -6,6 +6,7 @@ import com.aiva.AIVA_Project.repository.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -57,6 +58,24 @@ public class adminTestService {
         return testRepository.save(test);
     }
 
+    public assessmentTest getTest(Long testId) {
+        return testRepository.findById(testId).orElseThrow(() -> new RuntimeException("Test not found"));
+    }
+
+    public assessmentTest updateTest(Long testId, createTestRequest req) {
+        var test = getTest(testId);
+        test.setTitle(req.getTitle());
+        test.setDescription(req.getDescription());
+        test.setRoleCategory(req.getRoleCategory());
+        test.setDurationMinutes(req.getDurationMinutes());
+        test.setQuestionCount(req.getQuestionCount());
+        test.setRequireCamera(Boolean.TRUE.equals(req.getRequireCamera()));
+        test.setRequireMicrophone(Boolean.TRUE.equals(req.getRequireMicrophone()));
+        test.setRequireFullscreen(Boolean.TRUE.equals(req.getRequireFullscreen()));
+        test.setMaxTabSwitchWarnings(req.getMaxTabSwitchWarnings());
+        return testRepository.save(test);
+    }
+
     public List<assessmentTest> listTests(Long orgId) {
         return testRepository.findByOrganizationId(orgId);
     }
@@ -66,35 +85,59 @@ public class adminTestService {
         int startIndex = existing.size();
 
         List<testQuestion> saved = IntStream.range(0, inputs.size())
-                .mapToObj(i -> testQuestion.builder()
-                        .testId(testId)
-                        .questionText(inputs.get(i).getQuestionText())
-                        .maxMarks(inputs.get(i).getMaxMarks() == null ? 10.0 : inputs.get(i).getMaxMarks())
-                        .orderIndex(startIndex + i)
-                        .build())
+                .mapToObj(i -> {
+                    var in = inputs.get(i);
+                    return testQuestion.builder()
+                            .testId(testId)
+                            .questionText(in.getQuestionText())
+                            .optionA(in.getOptionA())
+                            .optionB(in.getOptionB())
+                            .optionC(in.getOptionC())
+                            .optionD(in.getOptionD())
+                            .correctOption(in.getCorrectOption())
+                            .maxMarks(in.getMaxMarks() == null ? 10.0 : in.getMaxMarks())
+                            .orderIndex(startIndex + i)
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         return questionRepository.saveAll(saved);
     }
 
     public List<questionInput> draftQuestionsWithAi(aiDraftRequest req) {
-        String systemPrompt = "You are an expert technical interviewer creating a hiring assessment. " +
-                "Generate exactly " + req.getCount() + " concise, clear assessment questions for the role: " +
-                req.getRoleCategory() + ". Focus on these topics: " + req.getTopics() + ". " +
-                "Return ONLY the questions, one per line, no numbering, no extra text.";
+        String systemPrompt = "You are an expert technical assessor creating a multiple-choice hiring assessment. " +
+                "Generate exactly " + req.getCount() + " MCQ questions for the role: " + req.getRoleCategory() + ". " +
+                "Focus on these topics: " + req.getTopics() + ". " +
+                "Return ONLY the questions in this EXACT format, one block per question, blocks separated by a blank line, " +
+                "no numbering, no extra commentary:\n" +
+                "Q: <question text>\n" +
+                "A: <option A>\n" +
+                "B: <option B>\n" +
+                "C: <option C>\n" +
+                "D: <option D>\n" +
+                "CORRECT: <A or B or C or D>";
 
-        String result = groqService.chat(systemPrompt, "Generate the questions now.");
+        String result = groqService.chat(systemPrompt, "Generate the MCQ questions now.");
 
-        return java.util.Arrays.stream(result.split("\n"))
-                .map(String::trim)
-                .filter(line -> !line.isBlank())
-                .map(line -> {
-                    questionInput q = new questionInput();
-                    q.setQuestionText(line);
-                    q.setMaxMarks(10.0);
-                    return q;
-                })
-                .collect(Collectors.toList());
+        List<questionInput> parsed = new ArrayList<>();
+        String[] blocks = result.split("\\n\\s*\\n");
+        for (String block : blocks) {
+            questionInput q = new questionInput();
+            q.setMaxMarks(10.0);
+            for (String line : block.split("\n")) {
+                line = line.trim();
+                if (line.startsWith("Q:")) q.setQuestionText(line.substring(2).trim());
+                else if (line.startsWith("A:")) q.setOptionA(line.substring(2).trim());
+                else if (line.startsWith("B:")) q.setOptionB(line.substring(2).trim());
+                else if (line.startsWith("C:")) q.setOptionC(line.substring(2).trim());
+                else if (line.startsWith("D:")) q.setOptionD(line.substring(2).trim());
+                else if (line.startsWith("CORRECT:")) q.setCorrectOption(line.substring(8).trim());
+            }
+            if (q.getQuestionText() != null && q.getCorrectOption() != null) {
+                parsed.add(q);
+            }
+        }
+        return parsed;
     }
 
     public testSlot createSlot(Long testId, slotRequest req) {
@@ -106,22 +149,51 @@ public class adminTestService {
         return slotRepository.save(slot);
     }
 
+    public testSlot updateSlot(Long slotId, slotRequest req) {
+        var slot = slotRepository.findById(slotId).orElseThrow(() -> new RuntimeException("Slot not found"));
+        slot.setStartTime(req.getStartTime());
+        slot.setEndTime(req.getEndTime());
+        return slotRepository.save(slot);
+    }
+
+    public void deleteSlot(Long slotId) {
+        invitationRepository.deleteBySlotId(slotId);
+        slotRepository.deleteById(slotId);
+    }
+
     public List<testSlot> listSlots(Long testId) {
         return slotRepository.findByTestId(testId);
     }
 
     public List<testInvitation> inviteCandidates(Long testId, Long slotId, List<String> emails) {
-        List<testInvitation> invitations = emails.stream()
-                .map(email -> testInvitation.builder()
+        List<testInvitation> results = new ArrayList<>();
+        for (String rawEmail : emails) {
+            String email = rawEmail == null ? "" : rawEmail.trim().toLowerCase();
+            if (email.isEmpty()) continue;
+
+            List<testInvitation> existing = invitationRepository
+                    .findByTestIdAndCandidateEmailOrderByInvitedAtDesc(testId, email);
+            var openInvite = existing.stream()
+                    .filter(i -> !"COMPLETED".equals(i.getStatus()))
+                    .findFirst();
+
+            if (openInvite.isPresent()) {
+                var inv = openInvite.get();
+                inv.setSlotId(slotId);
+                inv.setStatus("INVITED");
+                inv.setInvitedAt(LocalDateTime.now());
+                results.add(invitationRepository.save(inv));
+            } else {
+                results.add(invitationRepository.save(testInvitation.builder()
                         .testId(testId)
                         .slotId(slotId)
-                        .candidateEmail(email.trim().toLowerCase())
+                        .candidateEmail(email)
                         .status("INVITED")
                         .invitedAt(LocalDateTime.now())
-                        .build())
-                .collect(Collectors.toList());
-
-        return invitationRepository.saveAll(invitations);
+                        .build()));
+            }
+        }
+        return results;
     }
 
     public List<testInvitation> listInvitations(Long testId) {

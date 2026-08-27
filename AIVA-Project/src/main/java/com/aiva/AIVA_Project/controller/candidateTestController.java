@@ -46,7 +46,7 @@ public class candidateTestController {
     @PostMapping("/submissions/{submissionId}/question/{questionId}/answer")
     public ackResponse submitAnswer(@PathVariable Long submissionId, @PathVariable Long questionId,
                                      @RequestBody answerRequest req) {
-        return candidateTestService.submitAnswer(submissionId, questionId, req.getAnswer());
+        return candidateTestService.submitAnswer(submissionId, questionId, req.getSelectedOption());
     }
 
     @PostMapping("/submissions/{submissionId}/proctor-event")

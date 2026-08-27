@@ -14,12 +14,12 @@ public class submissionAnswer {
     private Long submissionId;
     private Long questionId;
 
-    @Column(length = 3000)
-    private String candidateAnswer;
+    private String selectedOption; // "A","B","C","D"
+    private Boolean isCorrect;
 
     private Double maxMarks;
     private Double aiScore;
 
-    @Column(length = 1000)
+    @Column(length = 500)
     private String aiFeedback;
 }

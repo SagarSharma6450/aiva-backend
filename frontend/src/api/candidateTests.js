@@ -6,10 +6,21 @@ function authHeader() {
 async function handle(res) {
   const text = await res.text();
   if (!res.ok) {
-    try { const j = JSON.parse(text); throw new Error(j.message || j.error || text); }
-    catch (e) { throw e instanceof Error ? e : new Error(text || 'Request failed'); }
+    let message = text || `Request failed (${res.status})`;
+    try {
+      const j = JSON.parse(text);
+      message = j.message || j.error || message;
+    } catch {
+      // response wasn't JSON — keep the raw text/status as the message
+    }
+    throw new Error(message);
   }
-  return text ? JSON.parse(text) : null;
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 export async function getAssignedTests() {
@@ -34,10 +45,10 @@ export async function getQuestion(submissionId, index) {
   return handle(res);
 }
 
-export async function submitAnswer(submissionId, questionId, answer) {
+export async function submitAnswer(submissionId, questionId, selectedOption) {
   const res = await fetch(`${BASE}/candidate/tests/submissions/${submissionId}/question/${questionId}/answer`, {
     method: 'POST', headers: { ...authHeader(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ answer }),
+    body: JSON.stringify({ selectedOption }),
   });
   return handle(res);
 }
