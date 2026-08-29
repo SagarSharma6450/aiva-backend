@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogOut, Plus, ClipboardCheck, Users, Layers } from 'lucide-react';
-import { listTests } from '../../api/admin';
+import { LogOut, Plus, ClipboardCheck, Users, Layers, Trash2 } from 'lucide-react';
+import { listTests, deleteTest } from '../../api/admin';
 import AssistantScene from '../../components/AssistantScene';
 import '../Dashboard.css';
 
@@ -11,13 +11,26 @@ export default function AdminDashboard() {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const refresh = () => listTests().then(setTests).catch(() => setTests([])).finally(() => setLoading(false));
+
   useEffect(() => {
     if (!localStorage.getItem('token')) { navigate('/login'); return; }
-    listTests().then(setTests).catch(() => setTests([])).finally(() => setLoading(false));
+    refresh();
   }, [navigate]);
 
   const logout = () => { localStorage.clear(); navigate('/login'); };
   const activeCount = tests.filter((t) => t.active).length;
+
+  const removeTest = async (e, testId) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this assessment permanently? All questions, slots, invitations, and submissions will be removed too.')) return;
+    try {
+      await deleteTest(testId);
+      refresh();
+    } catch (err) {
+      alert(err.message || 'Failed to delete assessment');
+    }
+  };
 
   return (
     <div className="dashboard-content" style={{ padding: 24, maxWidth: 1180, margin: '0 auto' }}>
@@ -77,9 +90,18 @@ export default function AdminDashboard() {
                 </div>
                 <p>{t.roleCategory} · {t.durationMinutes} min · {t.questionCount} MCQ questions</p>
               </div>
-              <button className="btn-primary start-btn" onClick={(e) => { e.stopPropagation(); navigate(`/admin/tests/${t.id}`); }}>
-                <Users size={16} /> Manage
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-primary start-btn" onClick={(e) => { e.stopPropagation(); navigate(`/admin/tests/${t.id}`); }}>
+                  <Users size={16} /> Manage
+                </button>
+                <button
+                  className="btn-secondary"
+                  style={{ color: '#ffb5b5', borderColor: 'rgba(255,125,125,0.4)' }}
+                  onClick={(e) => removeTest(e, t.id)}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </motion.div>
           ))}
         </div>

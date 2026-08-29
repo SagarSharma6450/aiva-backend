@@ -19,6 +19,8 @@ public class adminTestService {
     private final testQuestionRepository questionRepository;
     private final testSlotRepository slotRepository;
     private final testInvitationRepository invitationRepository;
+    private final testSubmissionRepository submissionRepository;
+    private final submissionAnswerRepository answerRepository;
     private final userRepository userRepository;
     private final groqService groqService;
 
@@ -26,12 +28,16 @@ public class adminTestService {
                              testQuestionRepository questionRepository,
                              testSlotRepository slotRepository,
                              testInvitationRepository invitationRepository,
+                             testSubmissionRepository submissionRepository,
+                             submissionAnswerRepository answerRepository,
                              userRepository userRepository,
                              groqService groqService) {
         this.testRepository = testRepository;
         this.questionRepository = questionRepository;
         this.slotRepository = slotRepository;
         this.invitationRepository = invitationRepository;
+        this.submissionRepository = submissionRepository;
+        this.answerRepository = answerRepository;
         this.userRepository = userRepository;
         this.groqService = groqService;
     }
@@ -81,6 +87,19 @@ public class adminTestService {
         return testRepository.findByOrganizationId(orgId);
     }
 
+    @Transactional
+    public void deleteTest(Long testId) {
+        List<testSubmission> submissions = submissionRepository.findByTestId(testId);
+        for (testSubmission sub : submissions) {
+            answerRepository.deleteBySubmissionId(sub.getId());
+        }
+        submissionRepository.deleteAll(submissions);
+        invitationRepository.deleteByTestId(testId);
+        slotRepository.deleteByTestId(testId);
+        questionRepository.deleteByTestId(testId);
+        testRepository.deleteById(testId);
+    }
+
     public List<testQuestion> addQuestions(Long testId, List<questionInput> inputs) {
         List<testQuestion> existing = questionRepository.findByTestIdOrderByOrderIndexAsc(testId);
         int startIndex = existing.size();
@@ -103,6 +122,26 @@ public class adminTestService {
                 .collect(Collectors.toList());
 
         return questionRepository.saveAll(saved);
+    }
+
+    public List<testQuestion> listQuestions(Long testId) {
+        return questionRepository.findByTestIdOrderByOrderIndexAsc(testId);
+    }
+
+    public testQuestion updateQuestion(Long questionId, questionInput input) {
+        var q = questionRepository.findById(questionId).orElseThrow(() -> new RuntimeException("Question not found"));
+        q.setQuestionText(input.getQuestionText());
+        q.setOptionA(input.getOptionA());
+        q.setOptionB(input.getOptionB());
+        q.setOptionC(input.getOptionC());
+        q.setOptionD(input.getOptionD());
+        q.setCorrectOption(input.getCorrectOption());
+        if (input.getMaxMarks() != null) q.setMaxMarks(input.getMaxMarks());
+        return questionRepository.save(q);
+    }
+
+    public void deleteQuestion(Long questionId) {
+        questionRepository.deleteById(questionId);
     }
 
     public List<questionInput> draftQuestionsWithAi(aiDraftRequest req) {

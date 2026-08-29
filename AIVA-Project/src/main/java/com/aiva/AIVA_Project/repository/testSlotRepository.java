@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface testSlotRepository extends JpaRepository<testSlot, Long> {
     List<testSlot> findByTestId(Long testId);
+    void deleteByTestId(Long testId);
 }

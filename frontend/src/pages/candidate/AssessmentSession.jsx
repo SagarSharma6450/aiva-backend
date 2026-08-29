@@ -34,12 +34,24 @@ export default function AssessmentSession() {
     }
   };
 
+  // used the first time the candidate leaves the instructions modal
   const enterFullscreen = useCallback(() => {
     const el = document.documentElement;
     const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
     if (rfs) rfs.call(el).then(() => { setIsFullscreen(true); activeRef.current = true; }).catch(() => { activeRef.current = true; });
     else activeRef.current = true;
     startCamera();
+  }, []);
+
+  // used when returning from a violation warning — must re-request fullscreen too,
+  // this was previously missing which left the candidate stuck outside fullscreen
+  const resumeFullscreen = useCallback(() => {
+    const el = document.documentElement;
+    const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+    if (rfs) {
+      rfs.call(el).then(() => setIsFullscreen(true)).catch(() => {});
+    }
+    activeRef.current = true;
   }, []);
 
   useEffect(() => () => { streamRef.current?.getTracks().forEach((t) => t.stop()); }, []);
@@ -129,7 +141,7 @@ export default function AssessmentSession() {
               <div className="modal-icon-ring danger"><AlertTriangle size={30} /></div>
               <h2>Violation Detected</h2>
               <p>This is violation <strong>{warningCount} of 2</strong>.</p>
-              <button className="btn-primary danger-btn w-full" onClick={() => setShowWarning(false)}>
+              <button className="btn-primary danger-btn w-full" onClick={() => { setShowWarning(false); resumeFullscreen(); }}>
                 Return to Assessment
               </button>
             </motion.div>

@@ -10,4 +10,5 @@ public interface testInvitationRepository extends JpaRepository<testInvitation, 
     List<testInvitation> findByTestId(Long testId);
     List<testInvitation> findBySlotId(Long slotId);
     void deleteBySlotId(Long slotId);
+    void deleteByTestId(Long testId);
 }

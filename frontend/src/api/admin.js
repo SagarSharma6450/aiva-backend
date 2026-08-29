@@ -115,3 +115,29 @@ export async function deleteSlot(testId, slotId) {
   });
   return handle(res);
 }
+export async function deleteTest(testId) {
+  const res = await fetch(`${BASE}/admin/tests/${testId}`, {
+    method: 'DELETE', headers: authHeader(),
+  });
+  return handle(res);
+}
+
+export async function getQuestions(testId) {
+  const res = await fetch(`${BASE}/admin/tests/${testId}/questions`, { headers: authHeader() });
+  return handle(res);
+}
+
+export async function updateQuestion(testId, questionId, payload) {
+  const res = await fetch(`${BASE}/admin/tests/${testId}/questions/${questionId}`, {
+    method: 'PUT', headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return handle(res);
+}
+
+export async function deleteQuestion(testId, questionId) {
+  const res = await fetch(`${BASE}/admin/tests/${testId}/questions/${questionId}`, {
+    method: 'DELETE', headers: authHeader(),
+  });
+  return handle(res);
+}

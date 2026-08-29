@@ -46,9 +46,30 @@ public class adminTestController {
         return adminTestService.updateTest(testId, req);
     }
 
+    @DeleteMapping("/{testId}")
+    public void deleteTest(@PathVariable Long testId) {
+        adminTestService.deleteTest(testId);
+    }
+
     @PostMapping("/{testId}/questions")
     public List<testQuestion> addQuestions(@PathVariable Long testId, @RequestBody List<questionInput> questions) {
         return adminTestService.addQuestions(testId, questions);
+    }
+
+    @GetMapping("/{testId}/questions")
+    public List<testQuestion> listQuestions(@PathVariable Long testId) {
+        return adminTestService.listQuestions(testId);
+    }
+
+    @PutMapping("/{testId}/questions/{questionId}")
+    public testQuestion updateQuestion(@PathVariable Long testId, @PathVariable Long questionId,
+                                        @RequestBody questionInput req) {
+        return adminTestService.updateQuestion(questionId, req);
+    }
+
+    @DeleteMapping("/{testId}/questions/{questionId}")
+    public void deleteQuestion(@PathVariable Long testId, @PathVariable Long questionId) {
+        adminTestService.deleteQuestion(questionId);
     }
 
     @PostMapping("/{testId}/questions/ai-draft")

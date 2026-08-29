@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface submissionAnswerRepository extends JpaRepository<submissionAnswer, Long> {
     List<submissionAnswer> findBySubmissionId(Long submissionId);
     Optional<submissionAnswer> findBySubmissionIdAndQuestionId(Long submissionId, Long questionId);
+    void deleteBySubmissionId(Long submissionId);
 }

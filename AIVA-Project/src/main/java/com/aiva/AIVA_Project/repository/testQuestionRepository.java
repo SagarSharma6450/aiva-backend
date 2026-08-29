@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface testQuestionRepository extends JpaRepository<testQuestion, Long> {
     List<testQuestion> findByTestIdOrderByOrderIndexAsc(Long testId);
+    void deleteByTestId(Long testId);
 }
