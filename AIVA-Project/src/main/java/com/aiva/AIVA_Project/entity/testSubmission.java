@@ -21,6 +21,10 @@ public class testSubmission {
 
     private Integer tabSwitchCount;
     private Integer fullscreenExitCount;
+    private Integer multipleFacesCount;
+    private Integer noFaceCount;
+    private Integer noiseDetectedCount;
+    private Integer devToolsCount;
 
     private String status; // IN_PROGRESS, COMPLETED, AUTO_SUBMITTED
 

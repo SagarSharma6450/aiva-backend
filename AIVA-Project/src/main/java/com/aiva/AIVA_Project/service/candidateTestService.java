@@ -111,25 +111,25 @@ public class candidateTestService {
             }
             throw new RuntimeException("This test is not currently available. Please check your assigned time slot.");
         }
-
+final testSlot finalChosenSlot = chosenSlot;
         List<testSubmission> existingSubs = submissionRepository
                 .findByTestIdAndCandidateIdOrderByStartedAtDesc(testId, user.getId());
-       testSubmission submission = existingSubs.stream()
-        .filter(s -> "IN_PROGRESS".equals(s.getStatus()))
-        .findFirst()
-        .orElse(null);
-
-if (submission == null) {
-    submission = testSubmission.builder()
-            .testId(testId)
-            .candidateId(user.getId())
-            .slotId(chosenSlot.getId())
-            .startedAt(now)
-            .tabSwitchCount(0)
-            .fullscreenExitCount(0)
-            .status("IN_PROGRESS")
-            .build();
-}
+               testSubmission submission = existingSubs.stream()
+                .filter(s -> "IN_PROGRESS".equals(s.getStatus()))
+                .findFirst()
+                .orElseGet(() -> testSubmission.builder()
+                        .testId(testId)
+                        .candidateId(user.getId())
+                        .slotId(finalChosenSlot.getId())
+                        .startedAt(now)
+                        .tabSwitchCount(0)
+                        .fullscreenExitCount(0)
+                        .multipleFacesCount(0)
+                        .noFaceCount(0)
+                        .noiseDetectedCount(0)
+                        .devToolsCount(0)
+                        .status("IN_PROGRESS")
+                        .build());
 
         submission = submissionRepository.save(submission);
 
@@ -201,20 +201,30 @@ if (submission == null) {
                 .build();
     }
 
-    public void logProctorEvent(Long submissionId, String type) {
+        public void logProctorEvent(Long submissionId, String type) {
         var submission = submissionRepository.findById(submissionId).orElseThrow();
-        if ("TAB_SWITCH".equals(type)) {
-            submission.setTabSwitchCount(submission.getTabSwitchCount() + 1);
-        } else if ("FULLSCREEN_EXIT".equals(type)) {
-            submission.setFullscreenExitCount(submission.getFullscreenExitCount() + 1);
+        switch (type) {
+            case "TAB_SWITCH" -> submission.setTabSwitchCount(submission.getTabSwitchCount() + 1);
+            case "FULLSCREEN_EXIT" -> submission.setFullscreenExitCount(submission.getFullscreenExitCount() + 1);
+            case "MULTIPLE_FACES" -> submission.setMultipleFacesCount(nz(submission.getMultipleFacesCount()) + 1);
+            case "NO_FACE" -> submission.setNoFaceCount(nz(submission.getNoFaceCount()) + 1);
+            case "NOISE_DETECTED" -> submission.setNoiseDetectedCount(nz(submission.getNoiseDetectedCount()) + 1);
+            case "DEVTOOLS_OPENED" -> submission.setDevToolsCount(nz(submission.getDevToolsCount()) + 1);
+            default -> { /* unknown event type, ignore */ }
         }
         submissionRepository.save(submission);
 
         var test = testRepository.findById(submission.getTestId()).orElseThrow();
-        int totalViolations = submission.getTabSwitchCount() + submission.getFullscreenExitCount();
+        int totalViolations = submission.getTabSwitchCount() + submission.getFullscreenExitCount()
+                + nz(submission.getMultipleFacesCount()) + nz(submission.getNoFaceCount())
+                + nz(submission.getNoiseDetectedCount()) + nz(submission.getDevToolsCount());
         if (totalViolations >= test.getMaxTabSwitchWarnings() && "IN_PROGRESS".equals(submission.getStatus())) {
             complete(submissionId, "AUTO_SUBMITTED");
         }
+    }
+
+    private int nz(Integer v) {
+        return v == null ? 0 : v;
     }
 
     public candidateCompletionResponse complete(Long submissionId) {

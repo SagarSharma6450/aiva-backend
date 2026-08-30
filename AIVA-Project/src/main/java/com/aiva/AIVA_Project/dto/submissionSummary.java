@@ -16,5 +16,9 @@ public class submissionSummary {
     private Double maxPossibleScore;
     private Integer tabSwitchCount;
     private Integer fullscreenExitCount;
+    private Integer multipleFacesCount;
+    private Integer noFaceCount;
+    private Integer noiseDetectedCount;
+    private Integer devToolsCount;
     private LocalDateTime completedAt;
 }

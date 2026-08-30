@@ -93,6 +93,7 @@ export default function TestInstructions() {
             <div className="detail-box"><ShieldAlert size={20} className="detail-icon gold" /><div><label>Tab-switch limit</label><p>{rules.maxTabSwitchWarnings} warnings</p></div></div>
             <div className="detail-box"><Video size={20} className="detail-icon" /><div><label>Camera</label><p>{rules.requireCamera ? 'Required — stays visible throughout' : 'Not required'}</p></div></div>
             <div className="detail-box"><Mic size={20} className="detail-icon blue" /><div><label>Microphone</label><p>{rules.requireMicrophone ? 'Required' : 'Not required'}</p></div></div>
+            <div className="detail-box"><ShieldAlert size={20} className="detail-icon gold" /><div><label>Proctoring</label><p>Multiple faces and background noise are monitored automatically.</p></div></div>
           </div>
         </div>
 

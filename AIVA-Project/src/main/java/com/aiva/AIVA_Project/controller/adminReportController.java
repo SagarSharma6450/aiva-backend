@@ -29,4 +29,14 @@ public class adminReportController {
     public submissionDetail getSubmissionDetail(@PathVariable Long submissionId) {
         return adminReportService.getSubmissionDetail(submissionId);
     }
+
+    @DeleteMapping("/submissions/{submissionId}")
+    public void deleteSubmission(@PathVariable Long submissionId) {
+        adminReportService.deleteSubmission(submissionId);
+    }
+
+    @DeleteMapping("/tests/{testId}/submissions")
+    public void deleteAllSubmissions(@PathVariable Long testId) {
+        adminReportService.deleteAllSubmissions(testId);
+    }
 }

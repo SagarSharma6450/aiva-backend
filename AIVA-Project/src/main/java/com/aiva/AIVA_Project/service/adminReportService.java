@@ -7,6 +7,8 @@ import com.aiva.AIVA_Project.entity.testQuestion;
 import com.aiva.AIVA_Project.entity.testSubmission;
 import com.aiva.AIVA_Project.entity.user;
 import com.aiva.AIVA_Project.repository.*;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -35,6 +37,21 @@ public class adminReportService {
             user candidate = userRepository.findById(sub.getCandidateId()).orElseThrow();
             return toSummary(sub, candidate);
         }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteSubmission(Long submissionId) {
+        answerRepository.deleteBySubmissionId(submissionId);
+        submissionRepository.deleteById(submissionId);
+    }
+
+    @Transactional
+    public void deleteAllSubmissions(Long testId) {
+        List<testSubmission> submissions = submissionRepository.findByTestId(testId);
+        for (testSubmission sub : submissions) {
+            answerRepository.deleteBySubmissionId(sub.getId());
+        }
+        submissionRepository.deleteAll(submissions);
     }
 
     public submissionDetail getSubmissionDetail(Long submissionId) {
@@ -66,7 +83,7 @@ public class adminReportService {
                 .build();
     }
 
-    private submissionSummary toSummary(testSubmission sub, user candidate) {
+        private submissionSummary toSummary(testSubmission sub, user candidate) {
         return submissionSummary.builder()
                 .submissionId(sub.getId())
                 .candidateName(candidate.getName())
@@ -79,6 +96,10 @@ public class adminReportService {
                 .maxPossibleScore(sub.getMaxPossibleScore())
                 .tabSwitchCount(sub.getTabSwitchCount())
                 .fullscreenExitCount(sub.getFullscreenExitCount())
+                .multipleFacesCount(sub.getMultipleFacesCount())
+                .noFaceCount(sub.getNoFaceCount())
+                .noiseDetectedCount(sub.getNoiseDetectedCount())
+                .devToolsCount(sub.getDevToolsCount())
                 .completedAt(sub.getCompletedAt())
                 .build();
     }

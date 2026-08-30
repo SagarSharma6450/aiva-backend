@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { deleteSubmission, deleteAllSubmissions } from '../../api/admin';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Plus, Sparkles, Trash2, Pencil, Save, X, Users,
@@ -57,6 +58,7 @@ export default function TestDetail() {
   const [invitations, setInvitations] = useState([]);
 
   const [submissions, setSubmissions] = useState([]);
+  const [selectedSubs, setSelectedSubs] = useState([]);
 
   const loadTest = () => getTest(testId).then((t) => { setTest(t); setEditForm(t); });
   const loadSlots = () => listSlots(testId).then(setSlots);
@@ -195,7 +197,34 @@ export default function TestDetail() {
       alert(e.message || 'Failed to send invitations');
     }
   };
+  const toggleSelectSub = (id) => {
+    setSelectedSubs((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
 
+  const deleteSelectedSubs = async () => {
+    if (selectedSubs.length === 0) return;
+    if (!window.confirm(`Delete ${selectedSubs.length} selected submission(s)? This cannot be undone.`)) return;
+    try {
+      await Promise.all(selectedSubs.map((id) => deleteSubmission(id)));
+      setSelectedSubs([]);
+      listSubmissions(testId).then(setSubmissions);
+    } catch (e) {
+      alert(e.message || 'Failed to delete selected submissions');
+    }
+  };
+
+  const clearAllSubs = async () => {
+    if (submissions.length === 0) return;
+    if (!window.confirm('Clear ALL submissions for this test? This permanently removes every candidate result and cannot be undone.')) return;
+    try {
+      await deleteAllSubmissions(testId);
+      setSelectedSubs([]);
+      listSubmissions(testId).then(setSubmissions);
+    } catch (e) {
+      alert(e.message || 'Failed to clear submissions');
+    }
+  };
+  
   if (!test) return <p style={{ padding: 24 }}>Loading...</p>;
 
   return (
@@ -414,32 +443,65 @@ export default function TestDetail() {
         </div>
       )}
 
-      {tab === 'submissions' && (
-        <div className="submissions-list">
-          {submissions.length === 0 && <div className="empty-state"><p>No submissions yet.</p></div>}
-          {submissions.map((s) => (
-            <div
-              key={s.submissionId}
-              className="submission-row"
-              onClick={() => navigate(`/admin/tests/${testId}/submissions/${s.submissionId}`)}
-            >
-              <div className="history-icon tone-blue"><FileBarChart size={20} /></div>
-              <div className="submission-info">
-                <h4>{s.candidateName}</h4>
-                <span className="submission-email">{s.candidateEmail}</span>
-                <span className="submission-meta">
-                  {s.highestQualification || 'Education not specified'}
-                  {s.institution ? ` · ${s.institution}` : ''}
-                  {s.graduationYear ? ` (${s.graduationYear})` : ''}
-                </span>
-                <span className={`history-badge ${statusBadgeClass(s.status)}`}>{s.status}</span>
-              </div>
-              <div className="submission-score">
-                <strong>{s.totalScore ?? '-'}</strong>
-                <span>/ {s.maxPossibleScore ?? '-'}</span>
+           {tab === 'submissions' && (
+        <div>
+          {submissions.length > 0 && (
+            <div className="submissions-toolbar">
+              <span>{selectedSubs.length} selected</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-secondary" disabled={selectedSubs.length === 0} onClick={deleteSelectedSubs}>
+                  <Trash2 size={14} /> Delete Selected
+                </button>
+                <button
+                  className="btn-secondary"
+                  style={{ color: '#ffb5b5', borderColor: 'rgba(255,125,125,0.4)' }}
+                  onClick={clearAllSubs}
+                >
+                  <Trash2 size={14} /> Clear All
+                </button>
               </div>
             </div>
-          ))}
+          )}
+
+          <div className="submissions-list">
+            {submissions.length === 0 && <div className="empty-state"><p>No submissions yet.</p></div>}
+            {submissions.map((s) => (
+              <div key={s.submissionId} className="submission-row">
+                <input
+                  type="checkbox"
+                  className="submission-checkbox"
+                  checked={selectedSubs.includes(s.submissionId)}
+                  onChange={(e) => { e.stopPropagation(); toggleSelectSub(s.submissionId); }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div className="history-icon tone-blue"><FileBarChart size={20} /></div>
+                <div className="submission-info" onClick={() => navigate(`/admin/tests/${testId}/submissions/${s.submissionId}`)} style={{ cursor: 'pointer' }}>
+                  <h4>{s.candidateName}</h4>
+                  <span className="submission-email">{s.candidateEmail}</span>
+                  <span className="submission-meta">
+                    {s.highestQualification || 'Education not specified'}
+                    {s.institution ? ` · ${s.institution}` : ''}
+                    {s.graduationYear ? ` (${s.graduationYear})` : ''}
+                  </span>
+                  <span className={`history-badge ${statusBadgeClass(s.status)}`}>{s.status}</span>
+                </div>
+                <div className="submission-score">
+                  <strong>{s.totalScore ?? '-'}</strong>
+                  <span>/ {s.maxPossibleScore ?? '-'}</span>
+                </div>
+                <button
+                  className="btn-secondary submission-delete-btn"
+                  onClick={(e) => { e.stopPropagation(); (async () => {
+                    if (!window.confirm(`Delete ${s.candidateName}'s submission?`)) return;
+                    try { await deleteSubmission(s.submissionId); listSubmissions(testId).then(setSubmissions); }
+                    catch (err) { alert(err.message || 'Failed to delete'); }
+                  })(); }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

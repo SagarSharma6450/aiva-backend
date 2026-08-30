@@ -141,3 +141,16 @@ export async function deleteQuestion(testId, questionId) {
   });
   return handle(res);
 }
+export async function deleteSubmission(submissionId) {
+  const res = await fetch(`${BASE}/admin/reports/submissions/${submissionId}`, {
+    method: 'DELETE', headers: authHeader(),
+  });
+  return handle(res);
+}
+
+export async function deleteAllSubmissions(testId) {
+  const res = await fetch(`${BASE}/admin/reports/tests/${testId}/submissions`, {
+    method: 'DELETE', headers: authHeader(),
+  });
+  return handle(res);
+}

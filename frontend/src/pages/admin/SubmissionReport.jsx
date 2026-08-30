@@ -26,7 +26,8 @@ export default function SubmissionReport() {
           <h1>{candidate.candidateName}</h1>
           <p>{candidate.candidateEmail}</p>
           <p>{candidate.highestQualification} — {candidate.institution} ({candidate.graduationYear})</p>
-          <p>Tab switches: {candidate.tabSwitchCount} · Fullscreen exits: {candidate.fullscreenExitCount}</p>
+          <p>Tab switches: {candidate.tabSwitchCount ?? 0} · Fullscreen exits: {candidate.fullscreenExitCount ?? 0}</p>
+          <p>Multiple faces: {candidate.multipleFacesCount ?? 0} · Face not visible: {candidate.noFaceCount ?? 0} · Background noise: {candidate.noiseDetectedCount ?? 0} · DevTools opened: {candidate.devToolsCount ?? 0}</p>
           <h2>{candidate.totalScore} / {candidate.maxPossibleScore}</h2>
         </div>
       </div>

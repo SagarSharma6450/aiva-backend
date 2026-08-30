@@ -1,10 +1,28 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, ArrowRight, AlertTriangle, Monitor, ShieldCheck } from 'lucide-react';
+import { CheckCircle, ArrowRight, AlertTriangle, Monitor, ShieldCheck, EyeOff, Volume2, Users } from 'lucide-react';
 import { getQuestion, submitAnswer, logProctorEvent, completeTest } from '../../api/candidateTests';
 import AssistantScene from '../../components/AssistantScene';
+import useProctoring from '../../hooks/useProctoring';
+import useAntiCheat from '../../hooks/useAntiCheat';
 import '../Interview.css';
+
+const VIOLATION_MESSAGES = {
+  TAB_SWITCH: 'You switched tabs or left the assessment window.',
+  FULLSCREEN_EXIT: 'You exited fullscreen mode.',
+  MULTIPLE_FACES: 'Multiple faces detected in the camera frame.',
+  NO_FACE: 'Your face was not visible in the camera for too long.',
+  NOISE_DETECTED: 'Background noise or talking was detected. Please sit in a quiet place.',
+  DEVTOOLS_OPENED: 'Developer tools were detected as open.',
+};
+
+const VIOLATION_ICONS = {
+  MULTIPLE_FACES: Users,
+  NO_FACE: EyeOff,
+  NOISE_DETECTED: Volume2,
+  DEVTOOLS_OPENED: Monitor,
+};
 
 export default function AssessmentSession() {
   const { submissionId } = useParams();
@@ -17,6 +35,8 @@ export default function AssessmentSession() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [warningCount, setWarningCount] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
+  const [lastViolationType, setLastViolationType] = useState('TAB_SWITCH');
+  const [sessionActive, setSessionActive] = useState(false);
 
   const activeRef = useRef(false);
   const warningRef = useRef(0);
@@ -26,15 +46,16 @@ export default function AssessmentSession() {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
+      setSessionActive(true);
     } catch {
-      // camera unavailable — proctoring continues without live preview
+      // camera/mic unavailable — proctoring continues with reduced checks
+      setSessionActive(true);
     }
   };
 
-  // used the first time the candidate leaves the instructions modal
   const enterFullscreen = useCallback(() => {
     const el = document.documentElement;
     const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
@@ -43,14 +64,10 @@ export default function AssessmentSession() {
     startCamera();
   }, []);
 
-  // used when returning from a violation warning — must re-request fullscreen too,
-  // this was previously missing which left the candidate stuck outside fullscreen
   const resumeFullscreen = useCallback(() => {
     const el = document.documentElement;
     const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-    if (rfs) {
-      rfs.call(el).then(() => setIsFullscreen(true)).catch(() => {});
-    }
+    if (rfs) rfs.call(el).then(() => setIsFullscreen(true)).catch(() => {});
     activeRef.current = true;
   }, []);
 
@@ -75,15 +92,18 @@ export default function AssessmentSession() {
     navigate('/submitted');
   }, [submissionId, navigate]);
 
+  const handleViolation = useCallback(async (type) => {
+    if (!activeRef.current || doneRef.current) return;
+    warningRef.current += 1;
+    setWarningCount(warningRef.current);
+    setLastViolationType(type);
+    await logProctorEvent(submissionId, type).catch(() => {});
+    if (warningRef.current >= 2) finishUp();
+    else setShowWarning(true);
+  }, [submissionId, finishUp]);
+
+  // tab-switch / fullscreen-exit listeners
   useEffect(() => {
-    const handleViolation = async (type) => {
-      if (!activeRef.current || doneRef.current) return;
-      warningRef.current += 1;
-      setWarningCount(warningRef.current);
-      await logProctorEvent(submissionId, type).catch(() => {});
-      if (warningRef.current >= 2) finishUp();
-      else setShowWarning(true);
-    };
     const onVis = () => { if (document.hidden) handleViolation('TAB_SWITCH'); };
     const onFs = () => { if (!document.fullscreenElement && isFullscreen) handleViolation('FULLSCREEN_EXIT'); };
     document.addEventListener('visibilitychange', onVis);
@@ -92,7 +112,21 @@ export default function AssessmentSession() {
       document.removeEventListener('visibilitychange', onVis);
       document.removeEventListener('fullscreenchange', onFs);
     };
-  }, [submissionId, isFullscreen, finishUp]);
+  }, [isFullscreen, handleViolation]);
+
+  // face + audio proctoring
+  useProctoring({
+    videoRef,
+    stream: streamRef.current,
+    enabled: sessionActive,
+    onViolation: handleViolation,
+  });
+
+  // copy/paste block + devtools detection
+  useAntiCheat({
+    enabled: sessionActive,
+    onViolation: handleViolation,
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -116,6 +150,8 @@ export default function AssessmentSession() {
     { key: 'D', text: question.optionD },
   ].filter((o) => o.text);
 
+  const WarningIcon = VIOLATION_ICONS[lastViolationType] || AlertTriangle;
+
   return (
     <div className="interview-layout active-session">
       <AnimatePresence>
@@ -124,7 +160,7 @@ export default function AssessmentSession() {
             <motion.div className="proctor-modal app-shell-panel">
               <div className="modal-icon-ring"><Monitor size={30} /></div>
               <h2>Enter Fullscreen Mode</h2>
-              <p>This assessment is proctored. Tab switching and exiting fullscreen are logged.</p>
+              <p>This assessment is proctored using your camera and microphone. Tab switching, exiting fullscreen, multiple faces, and background noise are all monitored.</p>
               <div className="rules-box">
                 <div className="rule"><span className="dot warning" /> 1st violation: warning.</div>
                 <div className="rule"><span className="dot danger" /> 2nd violation: auto-submit.</div>
@@ -138,8 +174,9 @@ export default function AssessmentSession() {
         {showWarning && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay danger-overlay">
             <motion.div className="proctor-modal app-shell-panel">
-              <div className="modal-icon-ring danger"><AlertTriangle size={30} /></div>
+              <div className="modal-icon-ring danger"><WarningIcon size={30} /></div>
               <h2>Violation Detected</h2>
+              <p>{VIOLATION_MESSAGES[lastViolationType] || 'A proctoring rule was violated.'}</p>
               <p>This is violation <strong>{warningCount} of 2</strong>.</p>
               <button className="btn-primary danger-btn w-full" onClick={() => { setShowWarning(false); resumeFullscreen(); }}>
                 Return to Assessment
