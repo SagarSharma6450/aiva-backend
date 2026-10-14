@@ -13,4 +13,5 @@ public class candidateQuestionView {
     private Integer currentIndex;
     private Integer totalQuestions;
     private String savedSelectedOption;
+    private Integer remainingSeconds;
 }

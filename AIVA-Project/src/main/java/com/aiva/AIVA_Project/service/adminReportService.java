@@ -21,15 +21,17 @@ public class adminReportService {
     private final submissionAnswerRepository answerRepository;
     private final testQuestionRepository questionRepository;
     private final userRepository userRepository;
+    private final assessmentTestRepository testRepository;
 
     public adminReportService(testSubmissionRepository submissionRepository,
                                submissionAnswerRepository answerRepository,
                                testQuestionRepository questionRepository,
-                               userRepository userRepository) {
+                               userRepository userRepository,assessmentTestRepository testRepository) {
         this.submissionRepository = submissionRepository;
         this.answerRepository = answerRepository;
         this.questionRepository = questionRepository;
         this.userRepository = userRepository;
+        this.testRepository = testRepository;
     }
 
     public List<submissionSummary> listSubmissions(Long testId) {
@@ -58,7 +60,10 @@ public class adminReportService {
         testSubmission sub = submissionRepository.findById(submissionId).orElseThrow();
         user candidate = userRepository.findById(sub.getCandidateId()).orElseThrow();
 
-        List<testQuestion> questions = questionRepository.findByTestIdOrderByOrderIndexAsc(sub.getTestId());
+        var test = testRepository.findById(sub.getTestId()).orElseThrow();
+        List<testQuestion> allQuestions = questionRepository.findByTestIdOrderByOrderIndexAsc(sub.getTestId());
+        int limit = test.getQuestionCount() == null ? allQuestions.size() : Math.min(test.getQuestionCount(), allQuestions.size());
+        List<testQuestion> questions = allQuestions.subList(0, limit);
         var answers = answerRepository.findBySubmissionId(submissionId);
 
         List<submissionDetail.answerDetail> details = questions.stream().map(q -> {

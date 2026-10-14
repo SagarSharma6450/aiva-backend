@@ -50,8 +50,8 @@ public class candidateTestController {
     }
 
     @PostMapping("/submissions/{submissionId}/proctor-event")
-    public void logProctorEvent(@PathVariable Long submissionId, @RequestBody proctorEvent event) {
-        candidateTestService.logProctorEvent(submissionId, event.getType());
+    public proctorResult logProctorEvent(@PathVariable Long submissionId, @RequestBody proctorEvent event) {
+        return candidateTestService.logProctorEvent(submissionId, event.getType());
     }
 
     @PostMapping("/submissions/{submissionId}/complete")

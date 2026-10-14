@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, ArrowRight, AlertTriangle, Monitor, ShieldCheck, EyeOff, Volume2, Users } from 'lucide-react';
+import { CheckCircle, ArrowRight, AlertTriangle, Monitor, ShieldCheck, EyeOff, Volume2, Users, Clock } from 'lucide-react';
 import { getQuestion, submitAnswer, logProctorEvent, completeTest } from '../../api/candidateTests';
 import AssistantScene from '../../components/AssistantScene';
 import useProctoring from '../../hooks/useProctoring';
@@ -33,16 +33,17 @@ export default function AssessmentSession() {
   const [submitting, setSubmitting] = useState(false);
   const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [warningCount, setWarningCount] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
   const [lastViolationType, setLastViolationType] = useState('TAB_SWITCH');
   const [sessionActive, setSessionActive] = useState(false);
+  const [violationInfo, setViolationInfo] = useState({ count: null, allowed: null });
+  const [remaining, setRemaining] = useState(null);
 
   const activeRef = useRef(false);
-  const warningRef = useRef(0);
   const doneRef = useRef(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const endTimeRef = useRef(null);
 
   const startCamera = async () => {
     try {
@@ -51,7 +52,7 @@ export default function AssessmentSession() {
       if (videoRef.current) videoRef.current.srcObject = stream;
       setSessionActive(true);
     } catch {
-      // camera/mic unavailable — proctoring continues with reduced checks
+      // camera/mic unavailable, proctoring continues with reduced checks
       setSessionActive(true);
     }
   };
@@ -77,6 +78,10 @@ export default function AssessmentSession() {
     getQuestion(submissionId, index).then((q) => {
       setQuestion(q);
       setSelected(q.savedSelectedOption || '');
+      if (endTimeRef.current == null && q.remainingSeconds != null) {
+        endTimeRef.current = Date.now() + q.remainingSeconds * 1000;
+        setRemaining(q.remainingSeconds);
+      }
     });
   }, [submissionId]);
 
@@ -92,14 +97,31 @@ export default function AssessmentSession() {
     navigate('/submitted');
   }, [submissionId, navigate]);
 
+  // countdown timer, auto-submits at 0
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (endTimeRef.current == null || doneRef.current) return;
+      const left = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
+      setRemaining(left);
+      if (left === 0) finishUp();
+    }, 1000);
+    return () => clearInterval(id);
+  }, [finishUp]);
+
+  const formatTime = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+  // every violation goes to the server, which applies the admin's per-type limit
   const handleViolation = useCallback(async (type) => {
     if (!activeRef.current || doneRef.current) return;
-    warningRef.current += 1;
-    setWarningCount(warningRef.current);
     setLastViolationType(type);
-    await logProctorEvent(submissionId, type).catch(() => {});
-    if (warningRef.current >= 2) finishUp();
-    else setShowWarning(true);
+    try {
+      const res = await logProctorEvent(submissionId, type);
+      if (res?.autoSubmitted) { finishUp(); return; }
+      setViolationInfo({ count: res?.count ?? null, allowed: res?.allowed ?? null });
+    } catch {
+      setViolationInfo({ count: null, allowed: null });
+    }
+    setShowWarning(true);
   }, [submissionId, finishUp]);
 
   // tab-switch / fullscreen-exit listeners
@@ -162,8 +184,8 @@ export default function AssessmentSession() {
               <h2>Enter Fullscreen Mode</h2>
               <p>This assessment is proctored using your camera and microphone. Tab switching, exiting fullscreen, multiple faces, and background noise are all monitored.</p>
               <div className="rules-box">
-                <div className="rule"><span className="dot warning" /> 1st violation: warning.</div>
-                <div className="rule"><span className="dot danger" /> 2nd violation: auto-submit.</div>
+                <div className="rule"><span className="dot warning" /> Each violation type has a limit set by the hiring team.</div>
+                <div className="rule"><span className="dot danger" /> Going beyond a limit automatically submits your test.</div>
               </div>
               <button className="btn-primary w-full" onClick={() => { setShowFullscreenPrompt(false); enterFullscreen(); }}>
                 <ShieldCheck size={18} /> I Understand, Go Fullscreen
@@ -177,7 +199,12 @@ export default function AssessmentSession() {
               <div className="modal-icon-ring danger"><WarningIcon size={30} /></div>
               <h2>Violation Detected</h2>
               <p>{VIOLATION_MESSAGES[lastViolationType] || 'A proctoring rule was violated.'}</p>
-              <p>This is violation <strong>{warningCount} of 2</strong>.</p>
+              {violationInfo.allowed != null && (
+                <p>
+                  Used <strong>{violationInfo.count} of {violationInfo.allowed}</strong> allowed for this violation type.
+                  {violationInfo.count >= violationInfo.allowed ? ' The next one will automatically submit your assessment.' : ''}
+                </p>
+              )}
               <button className="btn-primary danger-btn w-full" onClick={() => { setShowWarning(false); resumeFullscreen(); }}>
                 Return to Assessment
               </button>
@@ -188,8 +215,11 @@ export default function AssessmentSession() {
 
       <video ref={videoRef} autoPlay muted playsInline className="proctor-pip" />
 
-      <header className="active-header app-shell-panel">
+      <header className="active-header app-shell-panel" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <span className="question-counter">Question {question.currentIndex} of {question.totalQuestions}</span>
+        {remaining != null && (
+          <span className="question-counter"><Clock size={14} style={{ verticalAlign: 'middle' }} /> {formatTime(remaining)}</span>
+        )}
       </header>
 
       <main className="question-container">

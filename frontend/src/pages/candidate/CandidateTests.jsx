@@ -68,7 +68,6 @@ export default function CandidateTests() {
         <span className="breadcrumb">AIVA · Candidate Portal</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <span className="greeting">Hi, <strong>{(userName || '').split(' ')[0] || 'there'}</strong></span>
-          <button className="btn-secondary" onClick={() => navigate('/dashboard')}>Practice Mode</button>
           <button className="btn-secondary" onClick={logout}><LogOut size={16} /> Log out</button>
         </div>
       </header>

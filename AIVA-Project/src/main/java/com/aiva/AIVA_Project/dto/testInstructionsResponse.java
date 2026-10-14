@@ -12,4 +12,9 @@ public class testInstructionsResponse {
     private Boolean requireMicrophone;
     private Boolean requireFullscreen;
     private Integer maxTabSwitchWarnings;
+    private Integer maxFullscreenExits;
+    private Integer maxMultipleFaces;
+    private Integer maxNoFace;
+    private Integer maxNoise;
+    private Integer maxDevTools;
 }

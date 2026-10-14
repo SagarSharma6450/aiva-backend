@@ -57,6 +57,11 @@ public class adminTestService {
                 .requireMicrophone(Boolean.TRUE.equals(req.getRequireMicrophone()))
                 .requireFullscreen(Boolean.TRUE.equals(req.getRequireFullscreen()))
                 .maxTabSwitchWarnings(req.getMaxTabSwitchWarnings() == null ? 2 : req.getMaxTabSwitchWarnings())
+                .maxFullscreenExits(req.getMaxFullscreenExits() == null ? 2 : req.getMaxFullscreenExits())
+                .maxMultipleFaces(req.getMaxMultipleFaces() == null ? 2 : req.getMaxMultipleFaces())
+                .maxNoFace(req.getMaxNoFace() == null ? 2 : req.getMaxNoFace())
+                .maxNoise(req.getMaxNoise() == null ? 2 : req.getMaxNoise())
+                .maxDevTools(req.getMaxDevTools() == null ? 2 : req.getMaxDevTools())
                 .createdByUserId(admin.getId())
                 .createdAt(LocalDateTime.now())
                 .active(true)
@@ -80,6 +85,11 @@ public class adminTestService {
         test.setRequireMicrophone(Boolean.TRUE.equals(req.getRequireMicrophone()));
         test.setRequireFullscreen(Boolean.TRUE.equals(req.getRequireFullscreen()));
         test.setMaxTabSwitchWarnings(req.getMaxTabSwitchWarnings());
+        test.setMaxFullscreenExits(req.getMaxFullscreenExits());
+        test.setMaxMultipleFaces(req.getMaxMultipleFaces());
+        test.setMaxNoFace(req.getMaxNoFace());
+        test.setMaxNoise(req.getMaxNoise());
+        test.setMaxDevTools(req.getMaxDevTools());
         return testRepository.save(test);
     }
 

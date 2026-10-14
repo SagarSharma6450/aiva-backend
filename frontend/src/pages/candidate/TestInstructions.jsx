@@ -90,11 +90,22 @@ export default function TestInstructions() {
             <div className="detail-box"><Clock size={20} className="detail-icon" /><div><label>Duration</label><p>{rules.durationMinutes} minutes</p></div></div>
             <div className="detail-box"><Hash size={20} className="detail-icon blue" /><div><label>Questions</label><p>{rules.questionCount} MCQs</p></div></div>
             <div className="detail-box"><Monitor size={20} className="detail-icon purple" /><div><label>Fullscreen</label><p>{rules.requireFullscreen ? 'Required' : 'Not required'}</p></div></div>
-            <div className="detail-box"><ShieldAlert size={20} className="detail-icon gold" /><div><label>Tab-switch limit</label><p>{rules.maxTabSwitchWarnings} warnings</p></div></div>
             <div className="detail-box"><Video size={20} className="detail-icon" /><div><label>Camera</label><p>{rules.requireCamera ? 'Required — stays visible throughout' : 'Not required'}</p></div></div>
             <div className="detail-box"><Mic size={20} className="detail-icon blue" /><div><label>Microphone</label><p>{rules.requireMicrophone ? 'Required' : 'Not required'}</p></div></div>
-            <div className="detail-box"><ShieldAlert size={20} className="detail-icon gold" /><div><label>Proctoring</label><p>Multiple faces and background noise are monitored automatically.</p></div></div>
           </div>
+        </div>
+
+        <div className="content-card app-shell-panel" style={{ marginBottom: 18 }}>
+          <div className="card-header"><h3>Allowed Violations</h3></div>
+          <div className="details-grid">
+            <div className="detail-box"><ShieldAlert size={20} className="detail-icon gold" /><div><label>Tab switches allowed</label><p>{rules.maxTabSwitchWarnings}</p></div></div>
+            <div className="detail-box"><ShieldAlert size={20} className="detail-icon gold" /><div><label>Fullscreen exits allowed</label><p>{rules.maxFullscreenExits}</p></div></div>
+            <div className="detail-box"><ShieldAlert size={20} className="detail-icon gold" /><div><label>Multiple faces allowed</label><p>{rules.maxMultipleFaces}</p></div></div>
+            <div className="detail-box"><ShieldAlert size={20} className="detail-icon gold" /><div><label>Face not visible allowed</label><p>{rules.maxNoFace}</p></div></div>
+            <div className="detail-box"><ShieldAlert size={20} className="detail-icon gold" /><div><label>Background noise allowed</label><p>{rules.maxNoise}</p></div></div>
+            <div className="detail-box"><ShieldAlert size={20} className="detail-icon gold" /><div><label>DevTools openings allowed</label><p>{rules.maxDevTools}</p></div></div>
+          </div>
+          <p style={{ marginTop: 12 }}>Going beyond any of these limits will automatically submit your assessment.</p>
         </div>
 
         {error && <div className="auth-error" style={{ marginBottom: 16 }}>{error}</div>}

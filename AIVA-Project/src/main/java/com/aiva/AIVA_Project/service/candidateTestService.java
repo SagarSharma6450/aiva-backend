@@ -5,6 +5,7 @@ import com.aiva.AIVA_Project.entity.*;
 import com.aiva.AIVA_Project.repository.*;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -37,6 +38,24 @@ public class candidateTestService {
         this.userRepository = userRepository;
     }
 
+    // ---------- helpers ----------
+
+    private int nz(Integer v) { return v == null ? 0 : v; }
+
+    private int lim(Integer v) { return v == null ? 2 : v; }
+
+    // only the first N questions, where N = the question count the admin set
+    private List<testQuestion> questionsFor(Long testId) {
+        var test = testRepository.findById(testId).orElseThrow();
+        List<testQuestion> all = questionRepository.findByTestIdOrderByOrderIndexAsc(testId);
+        int limit = test.getQuestionCount() == null
+                ? all.size()
+                : Math.min(test.getQuestionCount(), all.size());
+        return all.subList(0, limit);
+    }
+
+    // ---------- candidate dashboard ----------
+
     public List<candidateTestSummary> getAssignedTests(String email) {
         List<testInvitation> invitations = invitationRepository.findByCandidateEmail(email.toLowerCase());
         LocalDateTime now = LocalDateTime.now();
@@ -44,7 +63,7 @@ public class candidateTestService {
         return invitations.stream().map(inv -> {
             var test = testRepository.findById(inv.getTestId()).orElse(null);
             var slot = slotRepository.findById(inv.getSlotId()).orElse(null);
-            if (test == null || slot == null) return null; // slot/test was deleted by admin
+            if (test == null || slot == null) return null; // test/slot deleted by admin
 
             String effectiveStatus = inv.getStatus();
             if (!"COMPLETED".equals(effectiveStatus) && now.isAfter(slot.getEndTime())) {
@@ -56,7 +75,7 @@ public class candidateTestService {
                     .title(test.getTitle())
                     .roleCategory(test.getRoleCategory())
                     .durationMinutes(test.getDurationMinutes())
-                    .questionCount(test.getQuestionCount())
+                    .questionCount(questionsFor(test.getId()).size())
                     .status(effectiveStatus)
                     .slotId(slot.getId())
                     .slotStart(slot.getStartTime())
@@ -65,19 +84,28 @@ public class candidateTestService {
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
+    // ---------- instructions ----------
+
     public testInstructionsResponse getInstructions(Long testId) {
         var test = testRepository.findById(testId).orElseThrow(() -> new RuntimeException("Test not found"));
         return testInstructionsResponse.builder()
                 .title(test.getTitle())
                 .description(test.getDescription())
                 .durationMinutes(test.getDurationMinutes())
-                .questionCount(test.getQuestionCount())
+                .questionCount(questionsFor(testId).size())
                 .requireCamera(test.getRequireCamera())
                 .requireMicrophone(test.getRequireMicrophone())
                 .requireFullscreen(test.getRequireFullscreen())
-                .maxTabSwitchWarnings(test.getMaxTabSwitchWarnings())
+                .maxTabSwitchWarnings(lim(test.getMaxTabSwitchWarnings()))
+                .maxFullscreenExits(lim(test.getMaxFullscreenExits()))
+                .maxMultipleFaces(lim(test.getMaxMultipleFaces()))
+                .maxNoFace(lim(test.getMaxNoFace()))
+                .maxNoise(lim(test.getMaxNoise()))
+                .maxDevTools(lim(test.getMaxDevTools()))
                 .build();
     }
+
+    // ---------- start ----------
 
     public startSubmissionResponse startTest(Long testId, String email) {
         var user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
@@ -97,7 +125,7 @@ public class candidateTestService {
             var slotOpt = slotRepository.findById(inv.getSlotId());
             if (slotOpt.isEmpty()) continue; // slot was deleted
             var slot = slotOpt.get();
-            if (!now.isAfter(slot.getEndTime())) {
+            if (!now.isBefore(slot.getStartTime()) && !now.isAfter(slot.getEndTime())) {
                 chosen = inv;
                 chosenSlot = slot;
                 break;
@@ -111,16 +139,19 @@ public class candidateTestService {
             }
             throw new RuntimeException("This test is not currently available. Please check your assigned time slot.");
         }
-final testSlot finalChosenSlot = chosenSlot;
+
+        // lambdas need effectively-final variables
+        final Long slotIdForSubmission = chosenSlot.getId();
+
         List<testSubmission> existingSubs = submissionRepository
                 .findByTestIdAndCandidateIdOrderByStartedAtDesc(testId, user.getId());
-               testSubmission submission = existingSubs.stream()
+        testSubmission submission = existingSubs.stream()
                 .filter(s -> "IN_PROGRESS".equals(s.getStatus()))
                 .findFirst()
                 .orElseGet(() -> testSubmission.builder()
                         .testId(testId)
                         .candidateId(user.getId())
-                        .slotId(finalChosenSlot.getId())
+                        .slotId(slotIdForSubmission)
                         .startedAt(now)
                         .tabSwitchCount(0)
                         .fullscreenExitCount(0)
@@ -136,7 +167,7 @@ final testSlot finalChosenSlot = chosenSlot;
         chosen.setStatus("STARTED");
         invitationRepository.save(chosen);
 
-        List<testQuestion> questions = questionRepository.findByTestIdOrderByOrderIndexAsc(testId);
+        List<testQuestion> questions = questionsFor(testId);
         if (questions.isEmpty()) {
             throw new RuntimeException("This test has no questions configured yet. Contact the hiring team.");
         }
@@ -150,12 +181,22 @@ final testSlot finalChosenSlot = chosenSlot;
                 .build();
     }
 
+    // ---------- questions ----------
+
     public candidateQuestionView getQuestion(Long submissionId, int index) {
         var submission = submissionRepository.findById(submissionId).orElseThrow();
-        List<testQuestion> questions = questionRepository.findByTestIdOrderByOrderIndexAsc(submission.getTestId());
+        var test = testRepository.findById(submission.getTestId()).orElseThrow();
+        List<testQuestion> questions = questionsFor(submission.getTestId());
         if (index < 0 || index >= questions.size()) throw new RuntimeException("Invalid question index");
         var q = questions.get(index);
         var saved = answerRepository.findBySubmissionIdAndQuestionId(submissionId, q.getId());
+
+        Integer remaining = null;
+        if (test.getDurationMinutes() != null && test.getDurationMinutes() > 0 && submission.getStartedAt() != null) {
+            long left = Duration.between(LocalDateTime.now(),
+                    submission.getStartedAt().plusMinutes(test.getDurationMinutes())).getSeconds();
+            remaining = (int) Math.max(0, left);
+        }
 
         return candidateQuestionView.builder()
                 .questionId(q.getId())
@@ -167,6 +208,7 @@ final testSlot finalChosenSlot = chosenSlot;
                 .currentIndex(index + 1)
                 .totalQuestions(questions.size())
                 .savedSelectedOption(saved.map(submissionAnswer::getSelectedOption).orElse(null))
+                .remainingSeconds(remaining)
                 .build();
     }
 
@@ -190,42 +232,75 @@ final testSlot finalChosenSlot = chosenSlot;
         answerRepository.save(answer);
 
         var submission = submissionRepository.findById(submissionId).orElseThrow();
-        List<testQuestion> questions = questionRepository.findByTestIdOrderByOrderIndexAsc(submission.getTestId());
-        int currentOrder = question.getOrderIndex();
-        boolean hasNext = currentOrder + 1 < questions.size();
+        List<testQuestion> questions = questionsFor(submission.getTestId());
+        int idx = -1;
+        for (int i = 0; i < questions.size(); i++) {
+            if (questions.get(i).getId().equals(questionId)) { idx = i; break; }
+        }
+        boolean hasNext = idx >= 0 && idx + 1 < questions.size();
 
         return ackResponse.builder()
                 .saved(true)
                 .hasNext(hasNext)
-                .nextIndex(hasNext ? currentOrder + 2 : null)
+                .nextIndex(hasNext ? idx + 2 : null) // 1-based
                 .build();
     }
 
-        public void logProctorEvent(Long submissionId, String type) {
+    // ---------- proctoring ----------
+
+    public proctorResult logProctorEvent(Long submissionId, String type) {
         var submission = submissionRepository.findById(submissionId).orElseThrow();
+        var test = testRepository.findById(submission.getTestId()).orElseThrow();
+
+        if (!"IN_PROGRESS".equals(submission.getStatus())) {
+            return proctorResult.builder().autoSubmitted(true).type(type).count(0).allowed(0).build();
+        }
+
+        int count;
+        int allowed;
         switch (type) {
-            case "TAB_SWITCH" -> submission.setTabSwitchCount(submission.getTabSwitchCount() + 1);
-            case "FULLSCREEN_EXIT" -> submission.setFullscreenExitCount(submission.getFullscreenExitCount() + 1);
-            case "MULTIPLE_FACES" -> submission.setMultipleFacesCount(nz(submission.getMultipleFacesCount()) + 1);
-            case "NO_FACE" -> submission.setNoFaceCount(nz(submission.getNoFaceCount()) + 1);
-            case "NOISE_DETECTED" -> submission.setNoiseDetectedCount(nz(submission.getNoiseDetectedCount()) + 1);
-            case "DEVTOOLS_OPENED" -> submission.setDevToolsCount(nz(submission.getDevToolsCount()) + 1);
-            default -> { /* unknown event type, ignore */ }
+            case "TAB_SWITCH":
+                submission.setTabSwitchCount(nz(submission.getTabSwitchCount()) + 1);
+                count = submission.getTabSwitchCount();
+                allowed = lim(test.getMaxTabSwitchWarnings());
+                break;
+            case "FULLSCREEN_EXIT":
+                submission.setFullscreenExitCount(nz(submission.getFullscreenExitCount()) + 1);
+                count = submission.getFullscreenExitCount();
+                allowed = lim(test.getMaxFullscreenExits());
+                break;
+            case "MULTIPLE_FACES":
+                submission.setMultipleFacesCount(nz(submission.getMultipleFacesCount()) + 1);
+                count = submission.getMultipleFacesCount();
+                allowed = lim(test.getMaxMultipleFaces());
+                break;
+            case "NO_FACE":
+                submission.setNoFaceCount(nz(submission.getNoFaceCount()) + 1);
+                count = submission.getNoFaceCount();
+                allowed = lim(test.getMaxNoFace());
+                break;
+            case "NOISE_DETECTED":
+                submission.setNoiseDetectedCount(nz(submission.getNoiseDetectedCount()) + 1);
+                count = submission.getNoiseDetectedCount();
+                allowed = lim(test.getMaxNoise());
+                break;
+            case "DEVTOOLS_OPENED":
+                submission.setDevToolsCount(nz(submission.getDevToolsCount()) + 1);
+                count = submission.getDevToolsCount();
+                allowed = lim(test.getMaxDevTools());
+                break;
+            default:
+                return proctorResult.builder().autoSubmitted(false).type(type).count(0).allowed(0).build();
         }
         submissionRepository.save(submission);
 
-        var test = testRepository.findById(submission.getTestId()).orElseThrow();
-        int totalViolations = submission.getTabSwitchCount() + submission.getFullscreenExitCount()
-                + nz(submission.getMultipleFacesCount()) + nz(submission.getNoFaceCount())
-                + nz(submission.getNoiseDetectedCount()) + nz(submission.getDevToolsCount());
-        if (totalViolations >= test.getMaxTabSwitchWarnings() && "IN_PROGRESS".equals(submission.getStatus())) {
-            complete(submissionId, "AUTO_SUBMITTED");
-        }
+        boolean exceeded = count > allowed; // more than allowed -> auto-submit
+        if (exceeded) complete(submissionId, "AUTO_SUBMITTED");
+
+        return proctorResult.builder().autoSubmitted(exceeded).type(type).count(count).allowed(allowed).build();
     }
 
-    private int nz(Integer v) {
-        return v == null ? 0 : v;
-    }
+    // ---------- completion ----------
 
     public candidateCompletionResponse complete(Long submissionId) {
         complete(submissionId, "COMPLETED");

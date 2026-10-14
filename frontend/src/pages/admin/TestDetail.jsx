@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { deleteSubmission, deleteAllSubmissions } from '../../api/admin';
-import { motion } from 'framer-motion';
 import {
   ArrowLeft, Plus, Sparkles, Trash2, Pencil, Save, X, Users,
   ListChecks, CalendarClock, FileBarChart,
@@ -11,6 +9,7 @@ import {
   addQuestions, getQuestions, updateQuestion, deleteQuestion, draftQuestionsWithAi,
   createSlot, listSlots, updateSlot, deleteSlot,
   inviteCandidates, listInvitations, listSubmissions,
+  deleteSubmission, deleteAllSubmissions,
 } from '../../api/admin';
 import '../Profile.css';
 import '../Dashboard.css';
@@ -21,6 +20,17 @@ const TABS = [
   { id: 'invitations', label: 'Invitations', icon: Users },
   { id: 'submissions', label: 'Submissions', icon: FileBarChart },
 ];
+
+const LIMIT_FIELDS = [
+  ['maxTabSwitchWarnings', 'Tab switches allowed'],
+  ['maxFullscreenExits', 'Fullscreen exits allowed'],
+  ['maxMultipleFaces', 'Multiple-face detections allowed'],
+  ['maxNoFace', 'Face-not-visible allowed'],
+  ['maxNoise', 'Background-noise warnings allowed'],
+  ['maxDevTools', 'DevTools openings allowed'],
+];
+
+const EMPTY_QUESTION = { questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', maxMarks: 10 };
 
 const toIso = (v) => (v && v.length === 16 ? v + ':00' : v);
 
@@ -38,7 +48,7 @@ export default function TestDetail() {
   const [editingTest, setEditingTest] = useState(false);
   const [editForm, setEditForm] = useState(null);
 
-  const [manual, setManual] = useState({ questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', maxMarks: 10 });
+  const [manual, setManual] = useState(EMPTY_QUESTION);
   const [aiRole, setAiRole] = useState('');
   const [aiTopics, setAiTopics] = useState('');
   const [aiCount, setAiCount] = useState(5);
@@ -63,14 +73,16 @@ export default function TestDetail() {
   const loadTest = () => getTest(testId).then((t) => { setTest(t); setEditForm(t); });
   const loadSlots = () => listSlots(testId).then(setSlots);
   const loadQuestions = () => getQuestions(testId).then(setSavedQuestions).catch(() => setSavedQuestions([]));
+  const loadSubmissions = () => listSubmissions(testId).then(setSubmissions).catch(() => setSubmissions([]));
 
   useEffect(() => { loadTest(); loadSlots(); }, [testId]);
   useEffect(() => { if (tab === 'questions') loadQuestions(); }, [tab, testId]);
   useEffect(() => { if (tab === 'invitations') listInvitations(testId).then(setInvitations); }, [tab, testId]);
-  useEffect(() => { if (tab === 'submissions') listSubmissions(testId).then(setSubmissions); }, [tab, testId]);
+  useEffect(() => { if (tab === 'submissions') loadSubmissions(); }, [tab, testId]);
 
   const isSlotExpired = (s) => new Date(s.endTime) < new Date();
 
+  /* ---------- test ---------- */
   const saveTestEdit = async () => {
     try {
       await updateTest(testId, editForm);
@@ -91,11 +103,12 @@ export default function TestDetail() {
     }
   };
 
+  /* ---------- questions ---------- */
   const addManualQuestion = async () => {
     if (!manual.questionText.trim() || !manual.optionA.trim() || !manual.optionB.trim()) return;
     try {
       await addQuestions(testId, [manual]);
-      setManual({ questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'A', maxMarks: 10 });
+      setManual(EMPTY_QUESTION);
       loadQuestions();
     } catch (e) {
       alert(e.message || 'Failed to add question');
@@ -106,7 +119,7 @@ export default function TestDetail() {
     setDrafting(true);
     try {
       const result = await draftQuestionsWithAi(testId, { roleCategory: aiRole, topics: aiTopics, count: aiCount });
-      setDrafted(result);
+      setDrafted(result || []);
     } catch (e) {
       alert(e.message || 'Failed to generate AI draft');
     } finally {
@@ -157,6 +170,7 @@ export default function TestDetail() {
     }
   };
 
+  /* ---------- slots ---------- */
   const saveSlot = async () => {
     if (!slotForm.startTime || !slotForm.endTime) return;
     const payload = { startTime: toIso(slotForm.startTime), endTime: toIso(slotForm.endTime) };
@@ -186,6 +200,7 @@ export default function TestDetail() {
     }
   };
 
+  /* ---------- invitations ---------- */
   const sendInvites = async () => {
     if (!selectedSlot || !emailsText.trim()) return;
     const emails = emailsText.split(/[\n,]/).map((e) => e.trim()).filter(Boolean);
@@ -197,8 +212,10 @@ export default function TestDetail() {
       alert(e.message || 'Failed to send invitations');
     }
   };
+
+  /* ---------- submissions ---------- */
   const toggleSelectSub = (id) => {
-    setSelectedSubs((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+    setSelectedSubs((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   const deleteSelectedSubs = async () => {
@@ -207,7 +224,7 @@ export default function TestDetail() {
     try {
       await Promise.all(selectedSubs.map((id) => deleteSubmission(id)));
       setSelectedSubs([]);
-      listSubmissions(testId).then(setSubmissions);
+      loadSubmissions();
     } catch (e) {
       alert(e.message || 'Failed to delete selected submissions');
     }
@@ -219,12 +236,23 @@ export default function TestDetail() {
     try {
       await deleteAllSubmissions(testId);
       setSelectedSubs([]);
-      listSubmissions(testId).then(setSubmissions);
+      loadSubmissions();
     } catch (e) {
       alert(e.message || 'Failed to clear submissions');
     }
   };
-  
+
+  const removeOneSub = async (s) => {
+    if (!window.confirm(`Delete ${s.candidateName}'s submission?`)) return;
+    try {
+      await deleteSubmission(s.submissionId);
+      setSelectedSubs((prev) => prev.filter((x) => x !== s.submissionId));
+      loadSubmissions();
+    } catch (err) {
+      alert(err.message || 'Failed to delete');
+    }
+  };
+
   if (!test) return <p style={{ padding: 24 }}>Loading...</p>;
 
   return (
@@ -257,13 +285,26 @@ export default function TestDetail() {
               <div className="form-group"><label>Description</label><input value={editForm.description || ''} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} /></div>
               <div className="form-group"><label>Role Category</label><input value={editForm.roleCategory} onChange={(e) => setEditForm({ ...editForm, roleCategory: e.target.value })} /></div>
               <div className="details-grid">
-                <div className="form-group"><label>Duration (minutes)</label><input type="number" value={editForm.durationMinutes} onChange={(e) => setEditForm({ ...editForm, durationMinutes: Number(e.target.value) })} /></div>
-                <div className="form-group"><label>Question Count</label><input type="number" value={editForm.questionCount} onChange={(e) => setEditForm({ ...editForm, questionCount: Number(e.target.value) })} /></div>
+                <div className="form-group"><label>Duration (minutes)</label><input type="number" min="1" value={editForm.durationMinutes} onChange={(e) => setEditForm({ ...editForm, durationMinutes: Number(e.target.value) })} /></div>
+                <div className="form-group"><label>Question Count</label><input type="number" min="1" value={editForm.questionCount} onChange={(e) => setEditForm({ ...editForm, questionCount: Number(e.target.value) })} /></div>
               </div>
-              <div className="form-group"><label>Max Tab-Switch Warnings</label><input type="number" value={editForm.maxTabSwitchWarnings} onChange={(e) => setEditForm({ ...editForm, maxTabSwitchWarnings: Number(e.target.value) })} /></div>
-              <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={editForm.requireCamera} onChange={(e) => setEditForm({ ...editForm, requireCamera: e.target.checked })} /> Require Camera</label>
-              <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={editForm.requireMicrophone} onChange={(e) => setEditForm({ ...editForm, requireMicrophone: e.target.checked })} /> Require Microphone</label>
-              <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={editForm.requireFullscreen} onChange={(e) => setEditForm({ ...editForm, requireFullscreen: e.target.checked })} /> Require Fullscreen</label>
+
+              <div className="card-header"><h3>Allowed violations (exceeding any limit auto-submits)</h3></div>
+              {LIMIT_FIELDS.map(([key, label]) => (
+                <div className="form-group" key={key}>
+                  <label>{label}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editForm[key] ?? 2}
+                    onChange={(e) => setEditForm({ ...editForm, [key]: Number(e.target.value) })}
+                  />
+                </div>
+              ))}
+
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={!!editForm.requireCamera} onChange={(e) => setEditForm({ ...editForm, requireCamera: e.target.checked })} /> Require Camera</label>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={!!editForm.requireMicrophone} onChange={(e) => setEditForm({ ...editForm, requireMicrophone: e.target.checked })} /> Require Microphone</label>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={!!editForm.requireFullscreen} onChange={(e) => setEditForm({ ...editForm, requireFullscreen: e.target.checked })} /> Require Fullscreen</label>
               <div className="form-actions">
                 <button className="btn-secondary" onClick={() => { setEditingTest(false); setEditForm(test); }}><X size={16} /> Cancel</button>
                 <button className="btn-primary" onClick={saveTestEdit}><Save size={16} /> Save Changes</button>
@@ -336,7 +377,10 @@ export default function TestDetail() {
           </div>
 
           <div className="content-card app-shell-panel">
-            <div className="card-header"><h3>Saved Questions ({savedQuestions.length})</h3><p>Review, edit, or remove questions already added to this assessment.</p></div>
+            <div className="card-header">
+              <h3>Saved Questions ({savedQuestions.length})</h3>
+              <p>Review, edit, or remove questions already added to this assessment.</p>
+            </div>
 
             {savedQuestions.length === 0 ? (
               <p style={{ color: 'var(--text-muted)' }}>No questions added yet.</p>
@@ -424,7 +468,7 @@ export default function TestDetail() {
       {tab === 'invitations' && (
         <div className="content-card app-shell-panel">
           <div className="card-header"><h3>Invite Candidates</h3></div>
-          <select value={selectedSlot} onChange={(e) => setSelectedSlot(Number(e.target.value))} defaultValue="" style={{ marginBottom: 12 }}>
+          <select value={selectedSlot} onChange={(e) => setSelectedSlot(Number(e.target.value))} style={{ marginBottom: 12 }}>
             <option value="" disabled>Select a slot</option>
             {slots.filter((s) => !isSlotExpired(s)).map((s) => (
               <option key={s.id} value={s.id}>{new Date(s.startTime).toLocaleString()} — {new Date(s.endTime).toLocaleString()}</option>
@@ -443,7 +487,7 @@ export default function TestDetail() {
         </div>
       )}
 
-           {tab === 'submissions' && (
+      {tab === 'submissions' && (
         <div>
           {submissions.length > 0 && (
             <div className="submissions-toolbar">
@@ -471,11 +515,15 @@ export default function TestDetail() {
                   type="checkbox"
                   className="submission-checkbox"
                   checked={selectedSubs.includes(s.submissionId)}
-                  onChange={(e) => { e.stopPropagation(); toggleSelectSub(s.submissionId); }}
+                  onChange={() => toggleSelectSub(s.submissionId)}
                   onClick={(e) => e.stopPropagation()}
                 />
                 <div className="history-icon tone-blue"><FileBarChart size={20} /></div>
-                <div className="submission-info" onClick={() => navigate(`/admin/tests/${testId}/submissions/${s.submissionId}`)} style={{ cursor: 'pointer' }}>
+                <div
+                  className="submission-info"
+                  onClick={() => navigate(`/admin/tests/${testId}/submissions/${s.submissionId}`)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <h4>{s.candidateName}</h4>
                   <span className="submission-email">{s.candidateEmail}</span>
                   <span className="submission-meta">
@@ -491,11 +539,7 @@ export default function TestDetail() {
                 </div>
                 <button
                   className="btn-secondary submission-delete-btn"
-                  onClick={(e) => { e.stopPropagation(); (async () => {
-                    if (!window.confirm(`Delete ${s.candidateName}'s submission?`)) return;
-                    try { await deleteSubmission(s.submissionId); listSubmissions(testId).then(setSubmissions); }
-                    catch (err) { alert(err.message || 'Failed to delete'); }
-                  })(); }}
+                  onClick={(e) => { e.stopPropagation(); removeOneSub(s); }}
                 >
                   <Trash2 size={14} />
                 </button>
